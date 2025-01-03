@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string.h>
 #include <string>
-//#include <stdexcept> //FOR EXCEPTIONS invalid_argument, out_of_range
 
 using namespace std;
 
@@ -16,7 +15,7 @@ private:
 
 public:
 	//SETTERS
-	void setName(const string name) {
+	void setName(const string& name) {
 		if (name.empty() || name.size() < 2) {
 			throw invalid_argument("Name cannot be empty or less than two characters.");
 		}
@@ -31,8 +30,32 @@ public:
 		}
 		this->size = size;
 	}
-	void setDefaultValue(const string defaultValue) {                  //DO DEFAULT VALUE ACCORDING TO TYPE LATER
-		this->defaultValue = defaultValue;
+	void setDefaultValue(const string& defaultValue) {
+		switch (this->type) {
+		case TEXT:
+			this->defaultValue = defaultValue;
+			break;
+		case INT:
+			try {
+				stoi(defaultValue);
+				this->defaultValue = defaultValue;
+			}
+			catch (const invalid_argument&) {
+				throw invalid_argument("Default value must be a valid integer.");
+			}
+			break;
+		case FLOAT:
+			try {
+				stof(defaultValue);
+				this->defaultValue = defaultValue;
+			}
+			catch (const invalid_argument&) {
+				throw invalid_argument("Default value must be a valid float.");
+			}
+			break;
+		default:
+			throw invalid_argument("Invalid column type.");
+		}
 	}
 
 	//GETTERS
@@ -67,20 +90,19 @@ public:
 	//COPY CONSTRUCTOR
 	Row(const Row& original) : noColumns(original.noColumns) {
 		data = new string[noColumns];
-		for (int i = 0; i < noColumns; ++i) {
+		for (int i = 0; i < noColumns; i++) {
 			data[i] = original.data[i];  // deep copy
 		}
 	}
 	//ASSIGNMENT OPERATOR
 	Row& operator=(const Row& original) {
-		if (this == &original) return *this; // Self-assignment check
+		if (this == &original) return *this; //self assignment check
 
-		// Free existing resources
 		delete[] data;
 
 		noColumns = original.noColumns;
 		data = new string[noColumns];
-		for (int i = 0; i < noColumns; ++i) {
+		for (int i = 0; i < noColumns; i++) {
 			data[i] = original.data[i];
 		}
 		return *this;
@@ -92,9 +114,7 @@ public:
 	}
 	//DESTRUCTOR
 	~Row() {
-		if (data != nullptr) {
-			delete[] data;
-		}
+		delete[] data;
 	}
 	//SETTERS
 	void setIntData(int columnIndex, int value) {
@@ -120,8 +140,12 @@ public:
 	int getIntData(int columnIndex) const {
 		if (columnIndex < 0 || columnIndex >= noColumns)
 			throw out_of_range("Column index out of range.");
-
-		return stoi(data[columnIndex]);
+		try {
+			return stoi(data[columnIndex]);
+		}
+		catch (const invalid_argument&) {
+			throw invalid_argument("Data at the specified index is not a valid integer.");
+		}
 	}
 	string getTextData(int columnIndex) const {
 		if (columnIndex < 0 || columnIndex >= noColumns)
@@ -132,8 +156,12 @@ public:
 	float getFloatData(int columnIndex) const {
 		if (columnIndex < 0 || columnIndex >= noColumns)
 			throw out_of_range("Column index out of range.");
-
-		return stof(data[columnIndex]);
+		try {
+			return stof(data[columnIndex]);
+		}
+		catch (const invalid_argument&) {
+			throw invalid_argument("Data at the specified index is not a valid float.");
+		}
 	}
 };
 
@@ -198,6 +226,25 @@ public:
 	}
 	int getSize() const {
 		return noNames;
+	}
+	//**************************************
+	void removeName(const string& name) {
+		if (!nameExists(name) || names == nullptr) {
+			return;
+		}
+
+		string* newNames = new string[noNames - 1];
+		int index = 0;
+
+		for (int i = 0; i < noNames; i++) {
+			if (names[i] != name) {
+				newNames[index++] = names[i];
+			}
+		}
+
+		delete[] names;
+		names = (noNames - 1 > 0) ? newNames : nullptr;  //case where array becomes empty
+		noNames--;
 	}
 };
 
@@ -383,6 +430,12 @@ public:
 		for (int i = 0; i < this->noColumns; ++i) {  //set default values for each column
 			Column& column = *this->columns[i];
 
+			//check for size
+			if (column.getDefaultValue().size() > column.getSize()) {
+				cout << "Error: Default value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << "." << endl;
+				return;
+			}
+
 			switch (column.getType()) {
 			case INT:
 				newRow->setIntData(i, stoi(column.getDefaultValue()));
@@ -427,6 +480,13 @@ public:
 		for (int i = 0; i < this->noColumns; i++) {
 			const Column& column = this->getColumn(i);
 
+			//check for size
+			if (values[i].size() > column.getSize()) {
+				cout << "Error: Value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << "." << endl;
+				return;
+			}
+
+			//setting the value
 			switch (column.getType()) {
 			case INT:
 				newRow->setIntData(i, stoi(values[i]));
@@ -641,85 +701,90 @@ public:
 	}
 };
 
-//class Database {          //many tables
-//private:
-//	Table** database = nullptr;
-//	int noTables = 0;
-//public:
-//	//DESTRUCTOR
-//	~Database() {
-//		for (int i = 0; i < noTables; i++) {
-//			delete database[i];
-//		}
-//		delete[] database;
-//	}
-//
-//	//GETTERS
-//	int getTableIndex(const string name) const {
-//		for (int i = 0; i < noTables; i++) {
-//			if (database[i]->getName() == name) {
-//				return i;
-//			}
-//		}
-//		return -1;
-//	}
-//	bool tableExists(const string name)const {
-//		for (int i = 0; i < noTables; i++) {
-//			if (database[i]->getName() == name) {
-//				return true;
-//			}
-//		}
-//		return false;
-//	}
-//	//**************************************
-//	void addTableToDatabase(const Table& table) {
-//		if (tableExists(table.getName())) {
-//			cout << endl << "Table " << table.getName() << " already exists.";
-//			return;
-//		}
-//
-//		Table** newDatabase = new Table * [noTables + 1];
-//
-//		for (int i = 0; i < noTables; i++) {
-//			newDatabase[i] = new Table(*database[i]);     //i am copying pointers from database to newDatabase, not the actual Table objects
-//		}
-//		newDatabase[noTables] = new Table(table); // add new table at the end        //i need a custom copy constructor to perform deep copy or else the default one performs shallow copy
-//		for (int i = 0; i < noTables; i++) {
-//			delete database[i];  // Delete the table objects to free memory
-//		}
-//		delete[] database;
-//		database = newDatabase;  //point to the new array with increased size
-//		noTables++;
-//		cout << endl << "Table " << table.getName() << " added successfully.";
-//	}
-//	void displayTables() const {
-//		for (int i = 0; i < noTables; i++) {
-//			database[i]->displayTable();
-//		}
-//	}
-//	void describeTables() const {
-//		for (int i = 0; i < noTables; i++) {
-//			database[i]->describeTable();
-//		}
-//	}
-//	void dropTable(const string name) {
-//		if (tableExists(name) == false) {
-//			cout << endl << "Table " << name << " not found.";
-//			return;
-//		}
-//
-//		delete database[getTableIndex(name)];
-//
-//		for (int i = getTableIndex(name); i < noTables; i++) {
-//			database[i] = database[i + 1];    // move all elements to the left with 1 because we removed one
-//		}
-//		noTables--;
-//		database[noTables] = nullptr;
-//	}
-//};
+class Database {          //many tables
+private:
+	Table** database = nullptr;
+	int noTables = 0;
+
+public:
+	//DESTRUCTOR
+	~Database() {
+		for (int i = 0; i < noTables; i++) {
+			delete database[i];
+		}
+		delete[] database;
+	}
+	//GETTERS
+	int getTableIndex(const string& name) const {
+		for (int i = 0; i < noTables; i++) {
+			if (database[i]->getName() == name) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	//**************************************
+	void addTableToDatabase(const Table& table, TableNames& tableNames) {
+		Table** newDatabase = new Table * [noTables + 1];
+
+		for (int i = 0; i < noTables; i++) {
+			newDatabase[i] = new Table(*database[i]);     //i am copying pointers from database to newDatabase, not the actual Table objects
+		}
+		newDatabase[noTables] = new Table(table); // add new table at the end        //i need a custom copy constructor to perform deep copy or else the default one performs shallow copy
+
+		for (int i = 0; i < noTables; i++) {
+			delete database[i];  //delete the table objects
+		}
+		delete[] database;
+		database = newDatabase;  //point to the new array with increased size
+		noTables++;
+
+		tableNames.addName(table.getName());
+
+		cout << endl << "Table: " << "'" << table.getName() << "'" << " added successfully.";
+	}
+	//**************************************
+	void displayTables() const {
+		for (int i = 0; i < noTables; i++) {
+			database[i]->displayTable();
+		}
+	}
+	void describeTables() const {
+		for (int i = 0; i < noTables; i++) {
+			database[i]->describeTable();
+		}
+	}
+	//**************************************
+	void dropTable(const string& name, TableNames& tableNames) {
+		if (!tableNames.nameExists(name)) {
+			cout << endl << "Table: " << "'" << name << "'" << " not found.";
+			return;
+		}
+
+		int indexToRemove = getTableIndex(name);
+		if (indexToRemove == -1) return;
+
+		delete database[indexToRemove];
+
+		//shift remaining table pointers to the left
+		for (int i = indexToRemove; i < noTables - 1; i++) {
+			database[i] = database[i + 1];
+		}
+
+		noTables--;
+		database[noTables] = nullptr; //set last element to nullptr for no dangling pointer
+
+		//also remove the table name from tableNames
+		tableNames.removeName(name);
+
+		cout << endl << "Table: " << "'" << name << "'" << " dropped successfully.";
+	}
+	//**************************************
+};
 
 int main() {
 	TableNames* tableNames = new TableNames();
+	Database database;
 
 	Column columns[] = {
 		Column("ID", INT, 5, "0"),
@@ -731,23 +796,23 @@ int main() {
 	Table table2("Products", columns, 3, tableNames);
 
 	table.addRow(new string[3]{ "1", "Product 1", "10" });
-	table.addRow(new string[3]{ "2", "Product 2", "100" });
+	table.addRow(new string[3]{ "2", "Product 2", "10" });
+	table.addRow(new string[3]{ "2", "Product 333333333333333333", "10" });  //error because size bigger than 20
 	table.addRow();
 
-	table.describeTable();
-	table.displayTable();
-
 	table.addColumn(Column("Weight", FLOAT, 10, "0.5f"));
-	table.addColumn(Column("Available", INT, 10, "0"));         //daca e numele prea lung se strica si la describeTable
+	table.addColumn(Column("Available", INT, 10, "0"));    //daca e numele prea lung se strica si la describeTable
 
-	table.describeTable();
-	table.displayTable();
+	database.addTableToDatabase(table, *tableNames);
+
+	//database.dropTable("Products", *tableNames);        //if i uncomment this it wont display any tables
+
+	database.describeTables();
+	database.displayTables();
 
 	//Table table1("Products", columns, 3, tableNames);
 
 	delete tableNames;
 
-	//convert to int and check if its actually int
-	//In computer programming, an integer can be thought of as a value with nothing but 0 after the decimal point. If round(x,0) = x, then x is an integer.
 	return 0;
 }
