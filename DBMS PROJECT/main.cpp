@@ -167,7 +167,10 @@ public:
 
 class Index {  //create an index only on a single column
 private:
-	string name = "";
+	string indexNames = "";
+	int noIndexes = 0;
+	//another array of column type indexes? so the index basically is a column
+public:
 };
 
 class TableNames {            //to check if a table name already exists
@@ -266,12 +269,14 @@ public:
 		this->setColumns(columns, noColumns);
 
 		if (tableNames != nullptr && tableNames->nameExists(this->getName())) {
-			cout << "Error: Cannot create table. Table with this name already exists." << endl;
+			cout << endl << "Error: Cannot create table. Table with this name already exists.";
 			return;
 		}
 
 		//add the table name to TableNames
 		tableNames->addName(name);
+
+		cout << endl << "Table: " << "'" << name << "'" << " created successfully.";
 	}
 
 	//COPY CONSTRUCTOR
@@ -365,7 +370,7 @@ public:
 			delete[] this->rows;
 		}
 	}
-
+	//--------------------------------------------------
 	//SETTERS
 	void setName(const string& name) {
 		if (name.empty() || name.size() < 2) {
@@ -423,6 +428,29 @@ public:
 		return *this->rows[index];
 	}
 	//--------------------------------------------------
+	//ROWS
+	void deleteRow(int index) {
+		if (index < 0 || index >= this->noRows) {
+			cout << endl << "Error: Invalid row index.";
+			return;
+		}
+
+		Row** tempRows = new Row * [this->noRows - 1];
+		int tempIndex = 0;
+
+		for (int i = 0; i < this->noRows; i++) {    //copy everything except the row with the index to be deleted
+			if (i != index) {
+				tempRows[tempIndex++] = this->rows[i];
+			}
+			else {
+				delete this->rows[i];
+			}
+		}
+
+		delete[] this->rows;
+		this->rows = tempRows;
+		this->noRows--;
+	}
 
 	void addRow() {   //with default values
 		Row* newRow = new Row(this->noColumns);  //create a new row with the same number of columns as the table
@@ -432,7 +460,7 @@ public:
 
 			//check for size
 			if (column.getDefaultValue().size() > column.getSize()) {
-				cout << "Error: Default value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << "." << endl;
+				cout << endl << "Error: Default value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << ".";
 				return;
 			}
 
@@ -472,7 +500,7 @@ public:
 
 	void addRowWithValues(const string* values) {
 		if (values == nullptr) {
-			cout << "Error: row values cannot be null." << endl;
+			cout << endl << "Error: row values cannot be null.";
 			return;
 		}
 		Row* newRow = new Row(this->noColumns);
@@ -482,7 +510,7 @@ public:
 
 			//check for size
 			if (values[i].size() > column.getSize()) {
-				cout << "Error: Value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << "." << endl;
+				cout << endl << "Error: Value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << ".";
 				return;
 			}
 
@@ -504,7 +532,7 @@ public:
 				newRow->setStringData(i, values[i]); //DATE AS STRING
 				break;
 			default:
-				cout << "Error: Unsupported column type." << endl;
+				cout << endl << "Error: Unsupported column type.";
 				return;
 			}
 		}
@@ -525,6 +553,56 @@ public:
 	void addRow(string* values) {
 		this->addRowWithValues(values);
 		delete[] values;
+	}
+
+	//--------------------------------------------------
+	//COLUMNS
+	void deleteColumn(const string& name) {
+		int index = -1;
+		for (int i = 0; i < noColumns; i++) {
+			if (columns[i]->getName() == name) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index == -1) {
+			cout << endl << "Column: " << "'" << name << "'" << " not found.";
+			return;
+		}
+
+		Column** tempColumns = new Column * [noColumns - 1];
+		int tempIndex = 0;
+
+		for (int i = 0; i < noColumns; i++) {
+			if (i != index) {
+				tempColumns[tempIndex++] = columns[i];    //copy everything except the column to delete
+			}
+			else {
+				delete columns[i];
+			}
+		}
+
+		delete[] columns;
+		columns = tempColumns;
+		noColumns--;
+
+		//update the rows
+		for (int i = 0; i < noRows; i++) {
+			Row* updatedRow = new Row(noColumns);   //iterate through all rows
+
+			for (int j = 0; j < noColumns; j++) {   //for each column of every row copy the data except the index to be deleted
+				if (j < index) {
+					updatedRow->setStringData(j, rows[i]->getTextData(j));
+				}
+				else {
+					updatedRow->setStringData(j, rows[i]->getTextData(j + 1));  //after index to delete shift left positions
+				}
+			}
+
+			delete rows[i];
+			rows[i] = updatedRow;
+		}
 	}
 
 	void addColumn(const Column& newColumn) {
@@ -571,6 +649,7 @@ public:
 		}
 	}
 
+	//--------------------------------------------------
 	//ONLY PRINTS THE TABLE STRUCTURE WITHOUT THE CONTENTS (only columns)
 	void describeTable() const {
 		//display borders and stuff
@@ -800,8 +879,12 @@ int main() {
 	table.addRow(new string[3]{ "2", "Product 333333333333333333", "10" });  //error because size bigger than 20
 	table.addRow();
 
+	//table.deleteRow(1);
+
 	table.addColumn(Column("Weight", FLOAT, 10, "0.5f"));
 	table.addColumn(Column("Available", INT, 10, "0"));    //daca e numele prea lung se strica si la describeTable
+
+	table.deleteColumn("Price");  //also add a function to databse because now it only works if i call this function before i add the table to the database
 
 	database.addTableToDatabase(table, *tableNames);
 
@@ -816,3 +899,7 @@ int main() {
 
 	return 0;
 }
+
+//when i add a table to database it prints added successfully
+//when i create a table it says created succesfully
+//when i make the string command i will basically need to print 'created succesfully' when i add to database so keep this in mind
