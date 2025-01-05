@@ -815,6 +815,27 @@ public:
 
 		cout << endl << "Table " << "'" << name << "'" << " created successfully.";
 	}
+	void insertIntoTable(const string& name, const string* values, int noValues) {
+		if (!tableExists(name)) {
+			cout << endl << "Error: Table: '" << name << "' does not exist.";
+			return;
+		}
+
+		int tableIndex = getTableIndex(name);
+
+		//get the table at our index
+		Table* table = database[tableIndex];
+
+		if (noValues != table->getNoColumns()) {
+			cout << endl << "Error: Number of values does not match the number of columns in the table.";
+			return;
+		}
+
+		//add the row
+		table->addRow(values);
+
+		cout << endl << "Values inserted into table '" << name << "' successfully.";
+	}
 	//--------------------------------------------------
 };
 
@@ -823,5 +844,8 @@ int main() {
 	Database db;
 	db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0"), Column("Name", TEXT, 20, ""), Column("Price", INT, 10, "0.0f") }, 3);
 	db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0"), Column("Name", TEXT, 20, ""), Column("Price", INT, 10, "0.0f") }, 3);
+	db.insertIntoTable("Products", new string[3]{ "1", "Laptop", "999.99" }, 3);
+	db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3);
+	db.insertIntoTable("Products", new string[3]{ "2", "Mouseddddddddddddddddddd", "129.99" }, 3);
 	return 0;
 }
