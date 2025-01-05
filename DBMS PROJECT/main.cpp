@@ -854,6 +854,15 @@ public:
 
 		cout << endl << "Column '" << columnName << "' deleted from table '" << tableName << "' successfully.";
 	}
+	void selectALL(const string& name) const {
+		if (!tableExists(name)) {
+			cout << endl << "Error: Table: " << "'" << name << "'" << " does not exist.";
+			return;
+		}
+
+		int index = getTableIndex(name);
+		database[index]->displayTable();
+	}
 	//--------------------------------------------------
 };
 
@@ -866,6 +875,7 @@ int main() {
 	db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3);
 	db.insertIntoTable("Products", new string[3]{ "2", "Mouseddddddddddddddddddd", "129.99" }, 3);
 	db.deleteColumnFromTable("Products", "Price");
+	db.selectALL("Products");
 
 	return 0;
 }
