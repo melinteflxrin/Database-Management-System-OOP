@@ -934,12 +934,26 @@ public:
 
 		cout << endl << "Updated " << updatedRows << " rows in table '" << tableName << "' by setting " << setColumnName << " to '" << setValue << "' where " << whereColumnName << " is '" << whereValue << "'.";;
 	}
+	void alterTableAddColumn(const string& tableName, const Column& newColumn) {
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		int tableIndex = getTableIndex(tableName);
+		Table* table = database[tableIndex];
+
+		table->addColumn(newColumn);
+
+		cout << endl << "Column '" << newColumn.getName() << "' added to table '" << tableName << "' successfully.";
+	}
 	//--------------------------------------------------
 };
 
 int main() {
 	//fix display later
 	Database db;
+
 	db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0"), Column("Name", TEXT, 20, ""), Column("Price", INT, 10, "0.0f") }, 3);
 	db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0"), Column("Name", TEXT, 20, ""), Column("Price", INT, 10, "0.0f") }, 3);
 	db.insertIntoTable("Products", new string[3]{ "1", "Laptop", "999.99" }, 3);
@@ -947,8 +961,12 @@ int main() {
 	db.insertIntoTable("Products", new string[3]{ "2", "Mouseddddddddddddddddddd", "129.99" }, 3);
 	db.deleteColumnFromTable("Products", "Price");
 	db.selectALL("Products");
+	db.describeTable("Products");
 	db.selectWHERE("Products", "Name");
 	db.updateTable("Products", "Name", "test", "Name", "Laptop");
+	db.alterTableAddColumn("Products", Column("Stock", INT, 5, "0"));
+	db.selectALL("Products");
+	db.dropTable("Products");
 
 	return 0;
 }
