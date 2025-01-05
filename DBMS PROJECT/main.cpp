@@ -900,6 +900,40 @@ public:
 			}
 		}
 	}
+	void updateTable(const string& tableName, const string& setColumnName, const string& setValue, const string& whereColumnName, const string& whereValue) {
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		int tableIndex = getTableIndex(tableName);
+		Table* table = database[tableIndex];
+
+		int setColumnIndex = table->getColumnIndex(setColumnName);
+		int whereColumnIndex = table->getColumnIndex(whereColumnName);
+
+		if (!table->columnExists(setColumnName)) {
+			cout << endl << "Error: Column '" << setColumnName << "' does not exist in table '" << tableName << "'.";
+			return;
+		}
+
+		if (!table->columnExists(whereColumnName)) {
+			cout << endl << "Error: Column '" << whereColumnName << "' does not exist in table '" << tableName << "'.";
+			return;
+		}
+
+		//update rows
+		int updatedRows = 0;
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			if (row.getTextData(whereColumnIndex) == whereValue) {
+				row.setStringData(setColumnIndex, setValue);
+				updatedRows++;
+			}
+		}
+
+		cout << endl << "Updated " << updatedRows << " rows in table '" << tableName << "' by setting " << setColumnName << " to '" << setValue << "' where " << whereColumnName << " is '" << whereValue << "'.";;
+	}
 	//--------------------------------------------------
 };
 
@@ -914,6 +948,7 @@ int main() {
 	db.deleteColumnFromTable("Products", "Price");
 	db.selectALL("Products");
 	db.selectWHERE("Products", "Name");
+	db.updateTable("Products", "Name", "test", "Name", "Laptop");
 
 	return 0;
 }
