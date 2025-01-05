@@ -836,6 +836,24 @@ public:
 
 		cout << endl << "Values inserted into table '" << name << "' successfully.";
 	}
+	void deleteColumnFromTable(const string& tableName, const string& columnName) {
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		int tableIndex = getTableIndex(tableName);
+		Table* table = database[tableIndex];
+
+		if (!table->columnExists(columnName)) {
+			cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << tableName << "'.";
+			return;
+		}
+
+		table->deleteColumn(columnName);
+
+		cout << endl << "Column '" << columnName << "' deleted from table '" << tableName << "' successfully.";
+	}
 	//--------------------------------------------------
 };
 
@@ -847,5 +865,7 @@ int main() {
 	db.insertIntoTable("Products", new string[3]{ "1", "Laptop", "999.99" }, 3);
 	db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3);
 	db.insertIntoTable("Products", new string[3]{ "2", "Mouseddddddddddddddddddd", "129.99" }, 3);
+	db.deleteColumnFromTable("Products", "Price");
+
 	return 0;
 }
