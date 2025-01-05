@@ -863,6 +863,43 @@ public:
 		int index = getTableIndex(name);
 		database[index]->displayTable();
 	}
+	void selectWHERE(const string& tableName, const string& columnName) {
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		int tableIndex = getTableIndex(tableName);
+		Table* table = database[tableIndex];
+
+		if (!table->columnExists(columnName)) {
+			cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << tableName << "'.";
+			return;
+		}
+
+		ColumnType columnType = table->getColumn(columnName).getType();
+		int columnIndex = table->getColumnIndex(columnName);
+
+		cout << endl << columnName;
+		cout << endl << "-----------------" << endl;
+
+		for (int i = 0; i < table->getNoRows(); i++) {
+			const Row& row = table->getRow(i);
+			switch (columnType) {
+			case INT:
+				cout << row.getIntData(columnIndex) << endl;
+				break;
+			case TEXT:
+				cout << row.getTextData(columnIndex) << endl;
+				break;
+			case FLOAT:
+				cout << row.getFloatData(columnIndex) << endl;
+				break;
+			default:
+				cout << endl << "Error: Unsupported column type.";
+			}
+		}
+	}
 	//--------------------------------------------------
 };
 
@@ -876,6 +913,7 @@ int main() {
 	db.insertIntoTable("Products", new string[3]{ "2", "Mouseddddddddddddddddddd", "129.99" }, 3);
 	db.deleteColumnFromTable("Products", "Price");
 	db.selectALL("Products");
+	db.selectWHERE("Products", "Name");
 
 	return 0;
 }
