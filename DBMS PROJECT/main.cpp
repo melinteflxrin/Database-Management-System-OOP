@@ -11,7 +11,7 @@ private:
 	string name = "";
 	ColumnType type = TEXT;
 	int size = 0;
-	string defaultValue;
+	string defaultValue = "";
 
 public:
 	//SETTERS
@@ -57,7 +57,6 @@ public:
 			throw invalid_argument("Invalid column type.");
 		}
 	}
-
 	//GETTERS
 	const string& getName() const {
 		return this->name;
@@ -71,7 +70,6 @@ public:
 	const string& getDefaultValue() const {
 		return this->defaultValue;
 	}
-
 	//CONSTRUCTOR
 	Column(const string& name, ColumnType type, int size, const string& defaultValue) {
 		this->setName(name);
@@ -87,6 +85,15 @@ private:
 	int noColumns = 0;
 
 public:
+	//DESTRUCTOR
+	~Row() {
+		delete[] data;
+	}
+	//CONSTRUCTOR
+	Row(int noColumns) {
+		this->noColumns = noColumns;
+		data = new string[noColumns];
+	}
 	//COPY CONSTRUCTOR
 	Row(const Row& original) : noColumns(original.noColumns) {
 		data = new string[noColumns];
@@ -107,15 +114,6 @@ public:
 		}
 		return *this;
 	}
-	//CONSTRUCTOR
-	Row(int noColumns) {
-		this->noColumns = noColumns;
-		data = new string[noColumns];
-	}
-	//DESTRUCTOR
-	~Row() {
-		delete[] data;
-	}
 	//SETTERS
 	void setIntData(int columnIndex, int value) {
 		if (columnIndex < 0 || columnIndex >= noColumns)
@@ -135,7 +133,6 @@ public:
 
 		data[columnIndex] = to_string(value);
 	}
-
 	//GETTERS
 	int getIntData(int columnIndex) const {
 		if (columnIndex < 0 || columnIndex >= noColumns)
@@ -163,14 +160,6 @@ public:
 			throw invalid_argument("Data at the specified index is not a valid float.");
 		}
 	}
-};
-
-class Index {  //create an index only on a single column
-private:
-	string indexNames = "";
-	int noIndexes = 0;
-	//another array of column type indexes? so the index basically is a column
-public:
 };
 
 class TableNames {            //to check if a table name already exists
@@ -206,6 +195,7 @@ public:
 	~TableNames() {
 		delete[] names;
 	}
+	//**************************************
 	void addName(const string& name) {
 		string* newNames = new string[this->noNames + 1];
 
@@ -259,31 +249,14 @@ private:
 	Row** rows = nullptr;
 	int noRows = 0;
 
-	TableNames* tableNames = nullptr;
-
 public:
 	//CONSTRUCTOR
-	Table(const string& name, const Column* columns, int noColumns, TableNames* tableNames) : name(name), noColumns(noColumns), tableNames(tableNames) {
+	Table(const string& name, const Column* columns, int noColumns) : name(name), noColumns(noColumns) {
 		this->setName(name);
-		this->setNoColumns(noColumns);
 		this->setColumns(columns, noColumns);
-
-		if (tableNames != nullptr && tableNames->nameExists(this->getName())) {
-			cout << endl << "Error: Cannot create table. Table with this name already exists.";
-			return;
-		}
-
-		//add the table name to TableNames
-		tableNames->addName(name);
-
-		cout << endl << "Table: " << "'" << name << "'" << " created successfully.";
 	}
-
 	//COPY CONSTRUCTOR
-	Table(const Table& original) : name(original.name), noColumns(original.noColumns), noRows(original.noRows), tableNames(original.tableNames) {  //I copy FROM original  //i create an object based on another object
-		if (original.tableNames) {
-			this->tableNames->addName(original.name);
-		}
+	Table(const Table& original) : name(original.name), noColumns(original.noColumns), noRows(original.noRows) {  //I copy FROM original  //i create an object based on another object
 		if (original.columns) {   // if copy.columns is not nul (an array of pointers to Column objects)
 			this->columns = new Column * [noColumns];
 			for (int i = 0; i < this->noColumns; i++) {
@@ -304,7 +277,6 @@ public:
 			this->rows = nullptr;
 		}
 	}
-
 	//ASSIGNMENT OPERATOR  - FOR WHEN I ASSIGN AN OBJECT TO ANOTHER (=)   // table1 = table2;
 	Table& operator=(const Table& copy) {
 		if (this == &copy) return *this; // self assignment check
@@ -344,17 +316,9 @@ public:
 		else {
 			this->rows = nullptr;
 		}
-		//
-		if (copy.tableNames) {
-			this->tableNames = new TableNames(*copy.tableNames);
-		}
-		else {
-			this->tableNames = nullptr;
-		}
 
 		return *this;
 	}
-
 	//DESTRUCTOR
 	~Table() {
 		if (columns != nullptr) {
@@ -378,12 +342,6 @@ public:
 		}
 		this->name = name;
 	}
-	void setNoColumns(int noColumns) {
-		if (noColumns < 1) {
-			throw invalid_argument("Number of columns must be larger than zero.");
-		}
-		this->noColumns = noColumns;
-	}
 	void setColumns(const Column* columns, int noColumns) {   //no need for Column** because Im not passing an array of pointers; Im passing a simple array that can be accessed linearly
 		if (columns == nullptr || noColumns < 1) {
 			throw invalid_argument("Columns cannot be null or empty.");
@@ -404,7 +362,6 @@ public:
 			this->columns[i] = new Column(columns[i]); // create each column using its constructor
 		}
 	}
-	//--------------------------------------------------
 	//GETTERS
 	const string& getName() const {
 		return this->name;
@@ -421,7 +378,23 @@ public:
 		}
 		return *(this->columns[index]);
 	}
-	const Row& getRow(int index) const {
+	const Column& getColumn(const string& name) const {
+		for (int i = 0; i < noColumns; i++) {
+			if (columns[i]->getName() == name) {
+				return *columns[i];
+			}
+		}
+		throw invalid_argument("Column not found.");
+	}
+	int getColumnIndex(const string& name) const {
+		for (int i = 0; i < noColumns; i++) {
+			if (columns[i]->getName() == name) {
+				return i;
+			}
+		}
+		throw invalid_argument("Column not found.");
+	}
+	Row& getRow(int index) const {
 		if (index < 0 || index >= this->noRows) {
 			throw out_of_range("Invalid row index.");
 		}
@@ -452,53 +425,7 @@ public:
 		this->noRows--;
 	}
 
-	void addRow() {   //with default values
-		Row* newRow = new Row(this->noColumns);  //create a new row with the same number of columns as the table
-
-		for (int i = 0; i < this->noColumns; ++i) {  //set default values for each column
-			Column& column = *this->columns[i];
-
-			//check for size
-			if (column.getDefaultValue().size() > column.getSize()) {
-				cout << endl << "Error: Default value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << ".";
-				return;
-			}
-
-			switch (column.getType()) {
-			case INT:
-				newRow->setIntData(i, stoi(column.getDefaultValue()));
-				break;
-			case TEXT:
-				newRow->setStringData(i, column.getDefaultValue());
-				break;
-			case FLOAT:
-				newRow->setFloatData(i, stof(column.getDefaultValue()));
-				break;
-			case BOOLEAN:
-				newRow->setStringData(i, column.getDefaultValue() == "true" ? "true" : "false");
-				break;
-			case DATE:
-				newRow->setStringData(i, column.getDefaultValue()); //DATE AS STRING
-				break;
-			default:
-				throw invalid_argument("Unsupported column type.");
-			}
-		}
-
-		Row** tempRows = new Row * [this->noRows + 1];  //actually adding the new row to the table
-
-		for (int i = 0; i < this->noRows; ++i) {  //copy the existing rows
-			tempRows[i] = this->rows[i];
-		}
-
-		tempRows[this->noRows] = newRow;  //adding the new row
-
-		delete[] this->rows;
-		this->rows = tempRows;
-		this->noRows++;
-	}
-
-	void addRowWithValues(const string* values) {
+	void addRow(const string* values) {
 		if (values == nullptr) {
 			cout << endl << "Error: row values cannot be null.";
 			return;
@@ -549,14 +476,18 @@ public:
 		this->rows = tempRows;
 		this->noRows++;
 	}
-	//ADD ROW AND FREE MEMORY
-	void addRow(string* values) {
-		this->addRowWithValues(values);
-		delete[] values;
-	}
 
 	//--------------------------------------------------
 	//COLUMNS
+	bool columnExists(const string& name) const {
+		for (int i = 0; i < noColumns; i++) {
+			if (columns[i]->getName() == name) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void deleteColumn(const string& name) {
 		int index = -1;
 		for (int i = 0; i < noColumns; i++) {
@@ -785,13 +716,19 @@ private:
 	Table** database = nullptr;
 	int noTables = 0;
 
+	TableNames* tableNames = nullptr;
 public:
+	//CONSTRUCTOR
+	Database() {
+		tableNames = new TableNames();
+	}
 	//DESTRUCTOR
 	~Database() {
 		for (int i = 0; i < noTables; i++) {
 			delete database[i];
 		}
 		delete[] database;
+		delete tableNames;
 	}
 	//GETTERS
 	int getTableIndex(const string& name) const {
@@ -802,41 +739,43 @@ public:
 		}
 		return -1;
 	}
-	//**************************************
-	void addTableToDatabase(const Table& table, TableNames& tableNames) {
+	//--------------------------------------------------
+	void addTableToDatabase(const Table& table) {
 		Table** newDatabase = new Table * [noTables + 1];
 
 		for (int i = 0; i < noTables; i++) {
 			newDatabase[i] = new Table(*database[i]);     //i am copying pointers from database to newDatabase, not the actual Table objects
 		}
-		newDatabase[noTables] = new Table(table); // add new table at the end        //i need a custom copy constructor to perform deep copy or else the default one performs shallow copy
+		newDatabase[noTables] = new Table(table); // add new table at the end
 
 		for (int i = 0; i < noTables; i++) {
 			delete database[i];  //delete the table objects
 		}
 		delete[] database;
-		database = newDatabase;  //point to the new array with increased size
+		database = newDatabase;
 		noTables++;
 
-		tableNames.addName(table.getName());
+		tableNames->addName(table.getName());
+	}
+	//--------------------------------------------------
+	void describeTable(const string& name) const {
+		if (!tableExists(name)) {
+			cout << endl << "Error: Table: " << "'" << name << "'" << " does not exist.";
+			return;
+		}
 
-		cout << endl << "Table: " << "'" << table.getName() << "'" << " added successfully.";
+		int index = getTableIndex(name);
+		database[index]->describeTable();
 	}
-	//**************************************
-	void displayTables() const {
-		for (int i = 0; i < noTables; i++) {
-			database[i]->displayTable();
+	bool tableExists(const string& name) const {
+		if (tableNames->nameExists(name)) {
+			return true;
 		}
+		return false;
 	}
-	void describeTables() const {
-		for (int i = 0; i < noTables; i++) {
-			database[i]->describeTable();
-		}
-	}
-	//**************************************
-	void dropTable(const string& name, TableNames& tableNames) {
-		if (!tableNames.nameExists(name)) {
-			cout << endl << "Table: " << "'" << name << "'" << " not found.";
+	void dropTable(const string& name) {
+		if (!tableExists(name)) {
+			cout << endl << "Error: Table: " << "'" << name << "'" << " does not exist.";
 			return;
 		}
 
@@ -854,52 +793,35 @@ public:
 		database[noTables] = nullptr; //set last element to nullptr for no dangling pointer
 
 		//also remove the table name from tableNames
-		tableNames.removeName(name);
+		tableNames->removeName(name);
 
 		cout << endl << "Table: " << "'" << name << "'" << " dropped successfully.";
 	}
-	//**************************************
+	//--------------------------------------------------
+	void createTable(const string& name, Column* columns, int noColumns) {
+		//check
+		if (tableExists(name)) {
+			cout << endl << "Error: Table: " << "'" << name << "'" << " already exists.";
+			return;
+		}
+
+		//create
+		Table* newTable = new Table(name, columns, noColumns);
+
+		//add
+		addTableToDatabase(*newTable);
+
+		delete newTable;
+
+		cout << endl << "Table " << "'" << name << "'" << " created successfully.";
+	}
+	//--------------------------------------------------
 };
 
 int main() {
-	TableNames* tableNames = new TableNames();
-	Database database;
-
-	Column columns[] = {
-		Column("ID", INT, 5, "0"),
-		Column("Name", TEXT, 20, ""),
-		Column("Price", INT, 10, "0.0f")
-	};
-
-	Table table("Products", columns, 3, tableNames);
-	Table table2("Products", columns, 3, tableNames);
-
-	table.addRow(new string[3]{ "1", "Product 1", "10" });
-	table.addRow(new string[3]{ "2", "Product 2", "10" });
-	table.addRow(new string[3]{ "2", "Product 333333333333333333", "10" });  //error because size bigger than 20
-	table.addRow();
-
-	//table.deleteRow(1);
-
-	table.addColumn(Column("Weight", FLOAT, 10, "0.5f"));
-	table.addColumn(Column("Available", INT, 10, "0"));    //daca e numele prea lung se strica si la describeTable
-
-	table.deleteColumn("Price");  //also add a function to databse because now it only works if i call this function before i add the table to the database
-
-	database.addTableToDatabase(table, *tableNames);
-
-	//database.dropTable("Products", *tableNames);        //if i uncomment this it wont display any tables
-
-	database.describeTables();
-	database.displayTables();
-
-	//Table table1("Products", columns, 3, tableNames);
-
-	delete tableNames;
-
+	//fix display later
+	Database db;
+	db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0"), Column("Name", TEXT, 20, ""), Column("Price", INT, 10, "0.0f") }, 3);
+	db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0"), Column("Name", TEXT, 20, ""), Column("Price", INT, 10, "0.0f") }, 3);
 	return 0;
 }
-
-//when i add a table to database it prints added successfully
-//when i create a table it says created succesfully
-//when i make the string command i will basically need to print 'created succesfully' when i add to database so keep this in mind
