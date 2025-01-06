@@ -1114,6 +1114,182 @@ public:
 
 		db->selectALL(tableName);
 	}
+	void stringCommandCreateTable(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if command starts with "CREATE TABLE "
+			if (commandCopy.find("CREATE TABLE ") != 0) {
+				//or without a space after "TABLE"
+				if (commandCopy.find("CREATE TABLE") == 0) {
+					cout << endl << "Invalid command format.";
+				}
+				else {
+					cout << endl << "Invalid command format.";
+				}
+				return;
+			}
+
+			//find the position of the first '('
+			size_t pos = commandCopy.find("(");
+			if (pos == string::npos) {  //if it reached the end of the string and did not find '('
+				cout << endl << "Invalid command format. Missing '('.";
+				return;
+			}
+
+			//get the table name
+			string tableName = commandCopy.substr(13, pos - 13);  // 13 is the length of "CREATE TABLE " with a space after
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//check for extra arguments
+			size_t extraArgsPos = tableName.find(' ');
+			if (extraArgsPos != string::npos) {
+				cout << endl << "Invalid command format. Too many arguments.";
+				return;
+			}
+
+			//find the position of the last ')'
+			size_t endPos = commandCopy.find_last_of(")");
+			if (endPos == string::npos) {
+				cout << endl << "Invalid command format. Missing ')'.";
+				return;
+			}
+			//--------------------------------------------------
+			//GET THE COLUMNS
+			string columnsPart = commandCopy.substr(pos + 1, endPos - pos - 1);  // -1 to exclude the last ')' // from after '(' to before ')'
+			trim(columnsPart);
+
+			if (columnsPart.empty()) {
+				cout << endl << "Invalid command format. Columns cannot be empty.";
+				return;
+			}
+
+			//split the columns part into individual columns
+			string* columns = nullptr;
+			int noColumns = 0;
+			splitCommand(columnsPart, ",", columns, noColumns);
+
+			if (noColumns == 0) {
+				cout << endl << "Invalid command format. No columns specified.";
+				return;
+			}
+
+			Column* tableColumns = new Column[noColumns];
+			for (int i = 0; i < noColumns; i++) {
+				string column = columns[i];
+				trim(column);
+
+				//split the column into individual parts
+				string* columnParts = nullptr;
+				int noParts = 0;
+				splitCommand(column, " ", columnParts, noParts);
+
+				if (noParts < 4 || noParts > 5) {
+					cout << endl << "Invalid command format. Invalid column format.";
+					delete[] columnParts;
+					delete[] columns;
+					delete[] tableColumns;
+					return;
+				}
+
+				//get the column name
+				string columnName = columnParts[0];
+				trim(columnName);
+
+				if (columnName.empty()) {
+					cout << endl << "Invalid command format. Column name cannot be empty.";
+					delete[] columnParts;
+					delete[] columns;
+					delete[] tableColumns;
+					return;
+				}
+
+				//get the column type
+				string columnType = columnParts[1];
+				trim(columnType);
+
+				ColumnType type;
+				try {
+					type = parseColumnType(columnType);
+				}
+				catch (const invalid_argument& e) {
+					cout << endl << e.what();
+					delete[] columnParts;
+					delete[] columns;
+					delete[] tableColumns;
+					return;
+				}
+
+				//get column size
+				string columnSize = columnParts[2];
+				trim(columnSize);
+
+				if (columnSize.empty()) {
+					cout << endl << "Invalid command format. Column size cannot be empty.";
+					delete[] columnParts;
+					delete[] columns;
+					delete[] tableColumns;
+					return;
+				}
+
+				//get column default value
+				string columnDefaultValue = columnParts[3];
+				trim(columnDefaultValue);
+
+				if (columnDefaultValue.empty()) {
+					cout << endl << "Invalid command format. Column default value cannot be empty.";
+					delete[] columnParts;
+					delete[] columns;
+					delete[] tableColumns;
+					return;
+				}
+
+				//check for extra arguments
+				size_t extraArgsPos = columnDefaultValue.find(' ');
+				if (extraArgsPos != string::npos) {
+					cout << endl << "Invalid command format. Too many arguments.";
+					delete[] columnParts;
+					delete[] columns;
+					delete[] tableColumns;
+					return;
+				}
+
+				//check if column is unique
+				bool unique = false;
+				if (noParts == 5) {
+					string uniquePart = columnParts[4];
+					trim(uniquePart);
+					if (uniquePart == "UNIQUE") {
+						unique = true;
+					}
+					else {
+						cout << endl << "Invalid command format. Invalid column format.";
+						delete[] columnParts;
+						delete[] columns;
+						delete[] tableColumns;
+						return;
+					}
+				}
+
+				//create the column
+				tableColumns[i] = Column(columnName, type, stoi(columnSize), columnDefaultValue, unique);
+			}
+
+			db->createTable(tableName, tableColumns, noColumns);
+
+			delete[] columns;
+			delete[] tableColumns;
+		}
+		catch (const invalid_argument& e) {  //handle any error like invalid column type or size etc.
+			cout << endl << e.what();
+		}
+	}
 };
 
 int main() {
