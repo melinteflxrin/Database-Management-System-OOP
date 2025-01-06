@@ -110,6 +110,11 @@ public:
 	~Row() {
 		delete[] data;
 	}
+	//DEFAULT CONSTRUCTOR
+	Row() {
+		this->data = nullptr;
+		this->noColumns = 0;
+	}
 	//CONSTRUCTOR
 	Row(int noColumns) {
 		this->noColumns = noColumns;
@@ -188,9 +193,15 @@ private:
 	string* names = nullptr;
 	int noNames = 0;
 public:
-	//CONSTRUCTOR
+	//DESTRUCTOR
+	~TableNames() {
+		delete[] names;
+	}
+	//DEFAULT CONSTRUCTOR
 	TableNames() {
-		names = new string[noNames];
+		this->names = nullptr;
+		this->noNames = 0;
+		this->names = new string[noNames];
 	}
 	//ASSIGNMENT OPERATOR
 	TableNames& operator=(const TableNames& original) {
@@ -211,10 +222,6 @@ public:
 		for (int i = 0; i < noNames; i++) {
 			names[i] = original.names[i];
 		}
-	}
-	//DESTRUCTOR
-	~TableNames() {
-		delete[] names;
 	}
 	//**************************************
 	void addName(const string& name) {
@@ -271,8 +278,16 @@ private:
 	int noRows = 0;
 
 public:
+	//DEFAULT CONSTRUCTOR
+	Table() {
+		this->name = "";
+		this->columns = nullptr;
+		this->noColumns = 0;
+		this->rows = nullptr;
+		this->noRows = 0;
+	}
 	//CONSTRUCTOR
-	Table(const string& name, const Column* columns, int noColumns) : name(name), noColumns(noColumns) {
+	Table(const string& name, const Column* columns, int noColumns) {
 		this->setName(name);
 		this->setColumns(columns, noColumns);
 	}
@@ -456,6 +471,16 @@ public:
 		for (int i = 0; i < this->noColumns; i++) {
 			const Column& column = this->getColumn(i);
 
+			//check if is UNIQUE
+			if (column.isUnique()) {
+				for (int j = 0; j < this->noRows; j++) {
+					if (this->rows[j]->getTextData(i) == values[i]) {
+						cout << endl << "Error: Value for column: " << column.getName() << " must be unique.";
+						return;
+					}
+				}
+			}
+
 			//check for size
 			if (values[i].size() > column.getSize()) {
 				cout << endl << "Error: Value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << ".";
@@ -606,8 +631,8 @@ public:
 	void describeTable() const {
 		//display borders and stuff
 		cout << endl << "Table name: " << this->getName();
-		cout << endl << "Column\t\tType\t\tSize\t\tDefault value";
-		cout << endl << "-------------------------------------------------------------";
+		cout << endl << "Column\t\tType\t\tSize\t\tDefault value\t\tUnique";
+		cout << endl << "--------------------------------------------------------------------------";
 
 		for (int i = 0; i < noColumns; i++) {
 			cout << endl;
@@ -629,17 +654,20 @@ public:
 
 			//DEFAULT VALUE
 			if (getColumn(i).getType() == INT) {
-				cout << getColumn(i).getDefaultValue() << endl;
+				cout << getColumn(i).getDefaultValue();
 			}
 			else if (getColumn(i).getType() == TEXT) {
-				cout << getColumn(i).getDefaultValue() << endl;
+				cout << getColumn(i).getDefaultValue();
 			}
 			else if (getColumn(i).getType() == FLOAT) {
-				cout << getColumn(i).getDefaultValue() << endl;
+				cout << getColumn(i).getDefaultValue();
 			}
 			else {
-				cout << "N/A" << endl;
+				cout << "N/A";
 			}
+
+			//UNIQUE
+			cout << "\t\t" << (getColumn(i).isUnique() ? "Yes" : "No") << endl;
 		}
 		cout << endl << "-------------------------------------------------------------" << endl;
 	}
