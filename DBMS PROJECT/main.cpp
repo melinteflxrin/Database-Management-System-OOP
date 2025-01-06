@@ -12,6 +12,7 @@ private:
 	ColumnType type = TEXT;
 	int size = 0;
 	string defaultValue = "";
+	bool unique = false;
 
 public:
 	//SETTERS
@@ -70,12 +71,32 @@ public:
 	const string& getDefaultValue() const {
 		return this->defaultValue;
 	}
+	const bool isUnique() const {
+		return this->unique;
+	}
+	//DEFAULT CONSTRUCTOR
+	Column() {
+		this->name = "";
+		this->type = TEXT;
+		this->size = 0;
+		this->defaultValue = "";
+		this->unique = false;
+	}
 	//CONSTRUCTOR
 	Column(const string& name, ColumnType type, int size, const string& defaultValue) {
 		this->setName(name);
 		this->setType(type);
 		this->setSize(size);
 		this->setDefaultValue(defaultValue);
+		this->unique = false;
+	}
+	//CONSTRUCTOR FOR UNIQUE
+	Column(const string& name, ColumnType type, int size, const string& defaultValue, bool unique) {
+		this->setName(name);
+		this->setType(type);
+		this->setSize(size);
+		this->setDefaultValue(defaultValue);
+		this->unique = unique;
 	}
 };
 
