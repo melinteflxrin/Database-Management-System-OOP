@@ -999,6 +999,123 @@ public:
 	//--------------------------------------------------
 };
 
+class Commands {
+private:
+	Database* db = nullptr;
+public:
+	//DEFAULT CONSTRUCTOR
+	Commands() {
+		this->db = nullptr;
+	}
+	//CONSTRUCTOR only this will be public later
+	Commands(Database* database) : db(database) {}
+	//HELPER FUNCTIONS
+	ColumnType parseColumnType(const string& type) {
+		//convert string to ColumnType for the column constructor
+		if (type == "INT") return INT;
+		if (type == "TEXT") return TEXT;
+		if (type == "FLOAT") return FLOAT;
+		if (type == "BOOLEAN") return BOOLEAN;
+		if (type == "DATE") return DATE;
+		throw invalid_argument("Invalid column type: " + type);
+	}
+	bool parseUnique(const string& unique) {
+		//convert string to bool for the column constructor
+		if (unique == "UNIQUE") return true;
+		return false;
+	}
+	//--------------------------------------------------
+	void trim(string& str) {
+		//find the first non-space character
+		size_t start = str.find_first_not_of(" ");
+		//find the last non-space character
+		size_t end = str.find_last_not_of(" ");
+
+		//if the string is only spaces set it to an empty string
+		if (start == string::npos) {
+			str = "";
+		}
+		else {
+			//make the trimmed string
+			str = str.substr(start, end - start + 1);
+		}
+	}
+	void splitCommand(const string& command, const string& delimiter, string*& tokens, int& tokenCount) {
+		string commandCopy = command;
+		trim(commandCopy);
+		tokenCount = 0;
+		size_t pos = 0;
+		string token;
+		while ((pos = commandCopy.find(delimiter)) != string::npos) {
+			token = commandCopy.substr(0, pos);
+			if (!token.empty()) {
+				tokenCount++;
+			}
+			commandCopy.erase(0, pos + delimiter.length());
+		}
+		if (!commandCopy.empty()) {
+			tokenCount++;
+		}
+
+		tokens = new string[tokenCount];
+		commandCopy = command;
+		pos = 0;
+		int i = 0;
+		while ((pos = commandCopy.find(delimiter)) != string::npos) {
+			token = commandCopy.substr(0, pos);
+			if (!token.empty()) {
+				tokens[i++] = token;
+			}
+			commandCopy.erase(0, pos + delimiter.length());
+		}
+		if (!commandCopy.empty()) {
+			tokens[i] = commandCopy;
+		}
+	}
+public:
+	void stringCommandSelectAll(const string& command) {
+		string commandCopy = command;
+		trim(commandCopy);
+
+		//check if the command starts with "SELECT ALL FROM "
+		if (commandCopy.find("SELECT ALL FROM ") != 0) {    //if it does not start with "SELECT ALL FROM " with space
+			//or without a space after "FROM"
+			if (commandCopy.find("SELECT ALL FROM") == 0) {  //if it starts with "SELECT ALL FROM" without a space after
+				cout << endl << "Invalid command format.";
+			}
+			else {
+				cout << endl << "Invalid command format.";
+			}
+			return;
+		}
+
+		//find the position of "FROM " and make sure there is a space after it
+		size_t pos = commandCopy.find("FROM ") + 5;  // 5 is the length of "FROM " with the space
+		if (pos >= commandCopy.length()) {
+			cout << endl << "Invalid command format. Too few arguments.";
+			return;
+		}
+
+		//get the table name
+		string tableName = commandCopy.substr(pos);
+		trim(tableName);
+
+		if (tableName.empty()) {
+			cout << endl << "Invalid command format. Too few arguments.";
+			return;
+		}
+
+		//check for extra arguments
+		size_t extraArgsPos = tableName.find(' ');
+		if (extraArgsPos != string::npos) {
+			cout << endl << "Invalid command format. Too many arguments.";
+			return;
+		}
+
+		db->selectALL(tableName);
+	}
+};
+
 int main() {
 	//fix display later
 	Database db;
