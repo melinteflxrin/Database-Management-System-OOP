@@ -1290,6 +1290,39 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandDropTable(const string& command) {
+		string commandCopy = command;
+		trim(commandCopy);
+
+		//check if the command starts with "DROP TABLE "
+		if (commandCopy.find("DROP TABLE ") != 0) {
+			if (commandCopy.find("DROP TABLE") == 0) {
+				cout << endl << "Invalid command format.";
+			}
+			else {
+				cout << endl << "Invalid command format.";
+			}
+			return;
+		}
+
+		//get the table name
+		string tableName = commandCopy.substr(11);  // 11 is the length of "DROP TABLE " with a space after
+		trim(tableName);
+
+		if (tableName.empty()) {
+			cout << endl << "Invalid command format. Too few arguments.";
+			return;
+		}
+
+		//check for extra arguments
+		size_t extraArgsPos = tableName.find(' ');
+		if (extraArgsPos != string::npos) {
+			cout << endl << "Invalid command format. Too many arguments.";
+			return;
+		}
+
+		db->dropTable(tableName);
+	}
 };
 
 int main() {
