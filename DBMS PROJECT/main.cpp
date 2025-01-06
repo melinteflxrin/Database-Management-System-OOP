@@ -767,9 +767,12 @@ private:
 
 	TableNames* tableNames = nullptr;
 public:
-	//CONSTRUCTOR
+	//DEFAULT CONSTRUCTOR
 	Database() {
-		tableNames = new TableNames();
+		this->database = nullptr;
+		this->noTables = 0;
+		this->tableNames = nullptr;
+		this->tableNames = new TableNames();
 	}
 	//DESTRUCTOR
 	~Database() {
@@ -777,7 +780,7 @@ public:
 			delete database[i];
 		}
 		delete[] database;
-		delete tableNames;
+		delete tableNames;  //i need to delete because i used 'new' in the constructor
 	}
 	//GETTERS
 	int getTableIndex(const string& name) const {
@@ -806,7 +809,30 @@ public:
 
 		tableNames->addName(table.getName());
 	}
+	bool tableExists(const string& name) const {
+		if (tableNames->nameExists(name)) {
+			return true;
+		}
+		return false;
+	}
 	//--------------------------------------------------
+	void createTable(const string& name, Column* columns, int noColumns) {
+		//check
+		if (tableExists(name)) {
+			cout << endl << "Error: Table: " << "'" << name << "'" << " already exists.";
+			return;
+		}
+
+		//create
+		Table* newTable = new Table(name, columns, noColumns);
+
+		//add
+		addTableToDatabase(*newTable);
+
+		delete newTable;
+
+		cout << endl << "Table " << "'" << name << "'" << " created successfully.";
+	}
 	void describeTable(const string& name) const {
 		if (!tableExists(name)) {
 			cout << endl << "Error: Table: " << "'" << name << "'" << " does not exist.";
@@ -815,12 +841,6 @@ public:
 
 		int index = getTableIndex(name);
 		database[index]->describeTable();
-	}
-	bool tableExists(const string& name) const {
-		if (tableNames->nameExists(name)) {
-			return true;
-		}
-		return false;
 	}
 	void dropTable(const string& name) {
 		if (!tableExists(name)) {
@@ -845,24 +865,6 @@ public:
 		tableNames->removeName(name);
 
 		cout << endl << "Table: " << "'" << name << "'" << " dropped successfully.";
-	}
-	//--------------------------------------------------
-	void createTable(const string& name, Column* columns, int noColumns) {
-		//check
-		if (tableExists(name)) {
-			cout << endl << "Error: Table: " << "'" << name << "'" << " already exists.";
-			return;
-		}
-
-		//create
-		Table* newTable = new Table(name, columns, noColumns);
-
-		//add
-		addTableToDatabase(*newTable);
-
-		delete newTable;
-
-		cout << endl << "Table " << "'" << name << "'" << " created successfully.";
 	}
 	void insertIntoTable(const string& name, const string* values, int noValues) {
 		if (!tableExists(name)) {
@@ -947,6 +949,42 @@ public:
 			default:
 				cout << endl << "Error: Unsupported column type.";
 			}
+		}
+	}
+	void selectColumns(const string& tableName, const string* columnNames, int noColumns) {
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		int tableIndex = getTableIndex(tableName);
+		Table* table = database[tableIndex];
+
+		cout << endl;
+		for (int i = 0; i < noColumns; i++) {
+			cout << columnNames[i] << "\t\t";
+		}
+		cout << endl << "-------------------------------------------------------------" << endl;
+
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			for (int j = 0; j < noColumns; j++) {
+				const Column& column = table->getColumn(columnNames[j]);
+				switch (column.getType()) {
+				case INT:
+					cout << row.getIntData(table->getColumnIndex(columnNames[j])) << "\t\t";
+					break;
+				case TEXT:
+					cout << row.getTextData(table->getColumnIndex(columnNames[j])) << "\t\t";
+					break;
+				case FLOAT:
+					cout << row.getFloatData(table->getColumnIndex(columnNames[j])) << "\t\t";
+					break;
+				default:
+					cout << "N/A" << "\t\t";
+				}
+			}
+			cout << endl;
 		}
 	}
 	void updateTable(const string& tableName, const string& setColumnName, const string& setValue, const string& whereColumnName, const string& whereValue) {
@@ -1323,25 +1361,72 @@ public:
 
 		db->dropTable(tableName);
 	}
+	void stringCommandDescribe(const string& command) {
+		string commandCopy = command;
+		trim(commandCopy);
+
+		//check if the command starts with "DESCRIBE "
+		if (commandCopy.find("DESCRIBE ") != 0) {
+			if (commandCopy.find("DESCRIBE") == 0) {
+				cout << endl << "Invalid command format.";
+			}
+			else {
+				cout << endl << "Invalid command format.";
+			}
+			return;
+		}
+
+		//get the table name
+		string tableName = commandCopy.substr(9);  // 9 is the length of "DESCRIBE " with a space after
+		trim(tableName);
+
+		if (tableName.empty()) {
+			cout << endl << "Invalid command format. Too few arguments.";
+			return;
+		}
+
+		//check for extra arguments
+		size_t extraArgsPos = tableName.find(' ');
+		if (extraArgsPos != string::npos) {
+			cout << endl << "Invalid command format. Too many arguments.";
+			return;
+		}
+
+		db->describeTable(tableName);
+	}
 };
+
+//HANDLE ERRORS IN EACH FUNCTION
 
 int main() {
 	//fix display later
 	Database db;
+	Commands commands(&db);
 
-	db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0"), Column("Name", TEXT, 20, ""), Column("Price", INT, 10, "0.0f") }, 3);
-	db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0"), Column("Name", TEXT, 20, ""), Column("Price", INT, 10, "0.0f") }, 3);
-	db.insertIntoTable("Products", new string[3]{ "1", "Laptop", "999.99" }, 3);
-	db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3);
-	db.insertIntoTable("Products", new string[3]{ "2", "Mouseddddddddddddddddddd", "129.99" }, 3);
-	db.deleteColumnFromTable("Products", "Price");
-	db.selectALL("Products");
-	db.describeTable("Products");
-	db.selectWHERE("Products", "Name");
-	db.updateTable("Products", "Name", "test", "Name", "Laptop");
-	db.alterTableAddColumn("Products", Column("Stock", INT, 5, "0"));
-	db.selectALL("Products");
-	db.dropTable("Products");
+	//db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0", true), Column("Name", TEXT, 20, ""), Column("Price", FLOAT, 10, "0.0f") }, 3);
+	//db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0", true), Column("Name", TEXT, 20, ""), Column("Price", FLOAT, 10, "0.0f") }, 3);
+	//db.insertIntoTable("Products", new string[3]{ "1", "Laptop", "999.99" }, 3);
+	//db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3);
+	//db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3); //error because not unique id
+	//db.insertIntoTable("Products", new string[3]{ "2", "Mouseddddddddddddddddddd", "129.99" }, 3); //error because name too long
+	//db.deleteColumnFromTable("Products", "Price");
+	//db.selectALL("Products");
+	//db.describeTable("Products");
+	//db.selectWHERE("Products", "Name");
+	//db.updateTable("Products", "Name", "test", "Name", "Laptop");
+	//db.alterTableAddColumn("Products", Column("Stock", INT, 5, "0"));
+	//db.selectALL("Products");
+	//db.selectColumns("Products", new string[2]{ "ID", "Name" }, 2);
+	//db.dropTable("Products");
+
+	string create = "CREATE TABLE Products (ID INT 5 0 UNIQUE, Name TEXT 20 unknown, Price FLOAT 10 0.0f)";
+	commands.stringCommandCreateTable(create);
+	string select = "SELECT ALL FROM Products";
+	commands.stringCommandSelectAll(select);
+	string describe = "DESCRIBE Products";
+	commands.stringCommandDescribe(describe);
+	//string drop = "DROP TABLE Products";
+	//commands.stringCommandDropTable(drop);
 
 	return 0;
 }
