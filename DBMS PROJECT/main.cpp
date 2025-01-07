@@ -1211,6 +1211,7 @@ private:
 	int noTables = 0;
 
 	TableNames* tableNames = nullptr;
+	Index* indexes = nullptr;
 public:
 	//DEFAULT CONSTRUCTOR
 	Database() {
@@ -1218,6 +1219,8 @@ public:
 		this->noTables = 0;
 		this->tableNames = nullptr;
 		this->tableNames = new TableNames();
+		this->indexes = nullptr;
+		this->indexes = new Index();
 	}
 	//DESTRUCTOR
 	~Database() {
@@ -1226,6 +1229,7 @@ public:
 		}
 		delete[] database;
 		delete tableNames;  //i need to delete because i used 'new' in the constructor
+		delete indexes;
 	}
 	//GETTERS
 	int getTableIndex(const string& name) const {
@@ -1296,6 +1300,11 @@ public:
 		int indexToRemove = getTableIndex(name);
 		if (indexToRemove == -1) return;
 
+		//check for indexes and remove them
+		while (indexes->indexExistsByTableName(name)) { //the indexExists loops through tableNames and if it finds duplicates it removes all of them
+			indexes->removeIndexByTableName(name);
+		}
+
 		delete database[indexToRemove];
 
 		//shift remaining table pointers to the left
@@ -1332,23 +1341,64 @@ public:
 
 		cout << endl << "Values inserted into table '" << name << "' successfully.";
 	}
-	void deleteColumnFromTable(const string& tableName, const string& columnName) {
-		if (!tableExists(tableName)) {
-			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+	void deleteRowFromTable(const string& name, const string& columnName, const string& value) {
+		if (!tableExists(name)) {
+			cout << endl << "Error: Table: " << "'" << name << "'" << " does not exist.";
 			return;
 		}
 
-		int tableIndex = getTableIndex(tableName);
+		int tableIndex = getTableIndex(name);
 		Table* table = database[tableIndex];
 
-		if (!table->columnExists(columnName)) {
-			cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << tableName << "'.";
-			return;
+		int columnIndex = 0;
+		bool hasIndex = indexes->indexExists(columnName, name);
+		if (hasIndex) {
+			columnIndex = indexes->getIndexValue(columnName, name);
+			if (!table->columnExistsByIndex(columnIndex)) {
+				cout << endl << "Error: Column with index '" << columnIndex << "' does not exist in table '" << name << "'.";
+				return;
+			}
+		}
+		else {
+			if (!table->columnExists(columnName)) {
+				cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << name << "'.";
+				return;
+			}
+			columnIndex = table->getColumnIndex(columnName);
 		}
 
-		table->deleteColumn(columnName);
+		ColumnType columnType = table->getColumn(columnName).getType();
 
-		cout << endl << "Column '" << columnName << "' deleted from table '" << tableName << "' successfully.";
+		//delete the row
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			switch (columnType) {
+			case INT:
+				if (row.getIntData(columnIndex) == stoi(value)) {
+					table->deleteRow(i);
+					cout << endl << "Row deleted successfully.";
+					return;
+				}
+				break;
+			case TEXT:
+				if (row.getTextData(columnIndex) == value) {
+					table->deleteRow(i);
+					cout << endl << "Row deleted successfully.";
+					return;
+				}
+				break;
+			case FLOAT:
+				if (row.getFloatData(columnIndex) == stof(value)) {
+					table->deleteRow(i);
+					cout << endl << "Row deleted successfully.";
+					return;
+				}
+				break;
+			default:
+				cout << endl << "Error: Unsupported column type.";
+			}
+		}
+		cout << endl << "Error: Row with value '" << value << "' not found in column '" << columnName << "'.";
 	}
 	void selectALL(const string& name) const {
 		if (!tableExists(name)) {
@@ -1359,7 +1409,7 @@ public:
 		int index = getTableIndex(name);
 		database[index]->displayTable();
 	}
-	void selectWHERE(const string& tableName, const string& columnName) {
+	void selectWHERE(const string& tableName, const string* columnNames, int noColumns, const string& conditionColumn, const string& value) {
 		if (!tableExists(tableName)) {
 			cout << endl << "Error: Table '" << tableName << "' does not exist.";
 			return;
@@ -1368,33 +1418,104 @@ public:
 		int tableIndex = getTableIndex(tableName);
 		Table* table = database[tableIndex];
 
-		if (!table->columnExists(columnName)) {
-			cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << tableName << "'.";
-			return;
-		}
+		int* columnIndexes = new int[noColumns];
+		int conditionColumnIndex;
 
-		ColumnType columnType = table->getColumn(columnName).getType();
-		int columnIndex = table->getColumnIndex(columnName);
-
-		cout << endl << columnName;
-		cout << endl << "-----------------" << endl;
-
-		for (int i = 0; i < table->getNoRows(); i++) {
-			const Row& row = table->getRow(i);
-			switch (columnType) {
-			case INT:
-				cout << row.getIntData(columnIndex) << endl;
-				break;
-			case TEXT:
-				cout << row.getTextData(columnIndex) << endl;
-				break;
-			case FLOAT:
-				cout << row.getFloatData(columnIndex) << endl;
-				break;
-			default:
-				cout << endl << "Error: Unsupported column type.";
+		//check if all specified columns and the condition column exist in the table
+		for (int i = 0; i < noColumns; i++) {
+			if (indexes->indexExists(columnNames[i], tableName)) {
+				columnIndexes[i] = indexes->getIndexValue(columnNames[i], tableName);
+				if (!table->columnExistsByIndex(columnIndexes[i])) {
+					cout << endl << "Error: Column with index '" << columnIndexes[i] << "' does not exist in table '" << tableName << "'.";
+					delete[] columnIndexes;
+					return;
+				}
+			}
+			else {
+				if (!table->columnExists(columnNames[i])) {
+					cout << endl << "Error: Column '" << columnNames[i] << "' does not exist in table '" << tableName << "'.";
+					delete[] columnIndexes;
+					return;
+				}
+				columnIndexes[i] = table->getColumnIndex(columnNames[i]);
 			}
 		}
+
+		if (indexes->indexExists(conditionColumn, tableName)) {
+			conditionColumnIndex = indexes->getIndexValue(conditionColumn, tableName);
+			if (!table->columnExistsByIndex(conditionColumnIndex)) {
+				cout << endl << "Error: Condition column with index '" << conditionColumnIndex << "' does not exist in table '" << tableName << "'.";
+				delete[] columnIndexes;
+				return;
+			}
+		}
+		else {
+			if (!table->columnExists(conditionColumn)) {
+				cout << endl << "Error: Condition column '" << conditionColumn << "' does not exist in table '" << tableName << "'.";
+				delete[] columnIndexes;
+				return;
+			}
+			conditionColumnIndex = table->getColumnIndex(conditionColumn);
+		}
+
+		cout << endl;
+		for (int i = 0; i < noColumns; i++) {
+			cout << columnNames[i] << "\t\t";
+		}
+		cout << endl << "-------------------------------------------------------------" << endl;
+
+		bool valueFound = false;
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			bool found = true;
+			const Column& conditionCol = table->getColumn(conditionColumn);
+			switch (conditionCol.getType()) {
+			case INT:
+				if (row.getIntData(conditionColumnIndex) != stoi(value)) {
+					found = false;
+				}
+				break;
+			case TEXT:
+				if (row.getTextData(conditionColumnIndex) != value) {
+					found = false;
+				}
+				break;
+			case FLOAT:
+				if (row.getFloatData(conditionColumnIndex) != stof(value)) {
+					found = false;
+				}
+				break;
+			default:
+				found = false;
+			}
+
+			if (found) {
+				valueFound = true;
+				for (int j = 0; j < noColumns; j++) {
+					const Column& column = table->getColumn(columnNames[j]);
+					switch (column.getType()) {
+					case INT:
+						cout << row.getIntData(columnIndexes[j]) << "\t\t";
+						break;
+					case TEXT:
+						cout << row.getTextData(columnIndexes[j]) << "\t\t";
+						break;
+					case FLOAT:
+						cout << row.getFloatData(columnIndexes[j]) << "\t\t";
+						break;
+					default:
+						cout << "N/A" << "\t\t";
+					}
+				}
+				cout << endl;
+			}
+		}
+
+		if (!valueFound) {
+			cout << "No rows found with " << conditionColumn << " = " << value << endl;
+		}
+
+		delete[] columnIndexes;
 	}
 	void selectColumns(const string& tableName, const string* columnNames, int noColumns) {
 		if (!tableExists(tableName)) {
@@ -1404,6 +1525,28 @@ public:
 
 		int tableIndex = getTableIndex(tableName);
 		Table* table = database[tableIndex];
+
+		int* columnIndexes = new int[noColumns];
+
+		//check if all specified columns exist in the table
+		for (int i = 0; i < noColumns; i++) {
+			if (indexes->indexExists(columnNames[i], tableName)) {        //if they have an index i use the functions which search by index
+				columnIndexes[i] = indexes->getIndexValue(columnNames[i], tableName);
+				if (!table->columnExistsByIndex(columnIndexes[i])) {
+					cout << endl << "Error: Column with index '" << columnIndexes[i] << "' does not exist in table '" << tableName << "'.";
+					delete[] columnIndexes;
+					return;
+				}
+			}
+			else {
+				if (!table->columnExists(columnNames[i])) {
+					cout << endl << "Error: Column '" << columnNames[i] << "' does not exist in table '" << tableName << "'.";
+					delete[] columnIndexes;
+					return;
+				}
+				columnIndexes[i] = table->getColumnIndex(columnNames[i]);
+			}
+		}
 
 		cout << endl;
 		for (int i = 0; i < noColumns; i++) {
@@ -1417,13 +1560,13 @@ public:
 				const Column& column = table->getColumn(columnNames[j]);
 				switch (column.getType()) {
 				case INT:
-					cout << row.getIntData(table->getColumnIndex(columnNames[j])) << "\t\t";
+					cout << row.getIntData(columnIndexes[j]) << "\t\t";
 					break;
 				case TEXT:
-					cout << row.getTextData(table->getColumnIndex(columnNames[j])) << "\t\t";
+					cout << row.getTextData(columnIndexes[j]) << "\t\t";
 					break;
 				case FLOAT:
-					cout << row.getFloatData(table->getColumnIndex(columnNames[j])) << "\t\t";
+					cout << row.getFloatData(columnIndexes[j]) << "\t\t";
 					break;
 				default:
 					cout << "N/A" << "\t\t";
@@ -1431,6 +1574,8 @@ public:
 			}
 			cout << endl;
 		}
+
+		delete[] columnIndexes;
 	}
 	void updateTable(const string& tableName, const string& setColumnName, const string& setValue, const string& whereColumnName, const string& whereValue) {
 		if (!tableExists(tableName)) {
@@ -1441,17 +1586,40 @@ public:
 		int tableIndex = getTableIndex(tableName);
 		Table* table = database[tableIndex];
 
-		int setColumnIndex = table->getColumnIndex(setColumnName);
-		int whereColumnIndex = table->getColumnIndex(whereColumnName);
+		int setColumnIndex;
+		int whereColumnIndex;
 
-		if (!table->columnExists(setColumnName)) {
-			cout << endl << "Error: Column '" << setColumnName << "' does not exist in table '" << tableName << "'.";
-			return;
+		bool setColumnHasIndex = indexes->indexExists(setColumnName, tableName);
+		bool whereColumnHasIndex = indexes->indexExists(whereColumnName, tableName);
+
+		if (setColumnHasIndex) {
+			setColumnIndex = indexes->getIndexValue(setColumnName, tableName);
+			if (!table->columnExistsByIndex(setColumnIndex)) {
+				cout << endl << "Error: Column with index '" << setColumnIndex << "' does not exist in table '" << tableName << "'.";
+				return;
+			}
+		}
+		else {
+			if (!table->columnExists(setColumnName)) {
+				cout << endl << "Error: Column '" << setColumnName << "' does not exist in table '" << tableName << "'.";
+				return;
+			}
+			setColumnIndex = table->getColumnIndex(setColumnName);
 		}
 
-		if (!table->columnExists(whereColumnName)) {
-			cout << endl << "Error: Column '" << whereColumnName << "' does not exist in table '" << tableName << "'.";
-			return;
+		if (whereColumnHasIndex) {
+			whereColumnIndex = indexes->getIndexValue(whereColumnName, tableName);
+			if (!table->columnExistsByIndex(whereColumnIndex)) {
+				cout << endl << "Error: Column with index '" << whereColumnIndex << "' does not exist in table '" << tableName << "'.";
+				return;
+			}
+		}
+		else {
+			if (!table->columnExists(whereColumnName)) {
+				cout << endl << "Error: Column '" << whereColumnName << "' does not exist in table '" << tableName << "'.";
+				return;
+			}
+			whereColumnIndex = table->getColumnIndex(whereColumnName);
 		}
 
 		//update rows
@@ -1464,7 +1632,7 @@ public:
 			}
 		}
 
-		cout << endl << "Updated " << updatedRows << " rows in table '" << tableName << "' by setting " << setColumnName << " to '" << setValue << "' where " << whereColumnName << " is '" << whereValue << "'.";;
+		cout << endl << "Updated " << updatedRows << " rows in table '" << tableName << "' by setting " << setColumnName << " to '" << setValue << "' where " << whereColumnName << " is '" << whereValue << "'.";
 	}
 	void alterTableAddColumn(const string& tableName, const Column& newColumn) {
 		if (!tableExists(tableName)) {
@@ -1479,6 +1647,46 @@ public:
 
 		cout << endl << "Column '" << newColumn.getName() << "' added to table '" << tableName << "' successfully.";
 	}
+	void alterTableDeleteColumn(const string& tableName, const string& columnName) {
+		//BASICALLY IF I HAVE AN INDEX ON THAT COLUMN I USE FUNCTIONS BASED ON THAT INDEX WHICH ARE FASTER
+		//IF I DONT HAVE AN INDEX I USE FUNCTIONS THAT SEARCH BY NAME EVERY COLUMN
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		int tableIndex = getTableIndex(tableName);
+		Table* table = database[tableIndex];
+
+		int columnIndex;
+		bool hasIndex = indexes->indexExists(columnName, tableName);
+		if (hasIndex) {
+			columnIndex = indexes->getIndexValue(columnName, tableName);
+			if (!table->columnExistsByIndex(columnIndex)) {
+				cout << endl << "Error: Column with index '" << columnIndex << "' does not exist in table '" << tableName << "'.";
+				return;
+			}
+		}
+		else {
+			if (!table->columnExists(columnName)) {
+				cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << tableName << "'.";
+				return;
+			}
+			columnIndex = table->getColumnIndex(columnName);
+		}
+
+		if (hasIndex) {
+			indexes->removeIndex(columnName, tableName);
+			table->deleteColumnByIndex(columnIndex);
+			cout << endl << "Index on column '" << columnName << "' in table '" << tableName << "' removed successfully.";
+		}
+		else {
+			table->deleteColumn(columnName);
+		}
+
+		cout << endl << "Column '" << columnName << "' deleted from table '" << tableName << "' successfully.";
+	}
+
 	//--------------------------------------------------
 };
 
