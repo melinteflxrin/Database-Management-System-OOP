@@ -651,11 +651,9 @@ public:
 	string getIndexColumnName(const string& indexName) const {
 		for (int i = 0; i < noIndexeNames; i++) {
 			if (indexNames[i] == indexName) {
-				cout << "Found index: " << indexName << " on column: " << columnNames[i] << endl;
 				return columnNames[i];
 			}
 		}
-		cout << endl << "Index: " << indexName << " not found." << endl;
 		return "";
 	}
 	string getIndexTableName(const string& indexName) const {
@@ -665,6 +663,27 @@ public:
 			}
 		}
 		return "";
+	}
+	void showIndexesByTableName(const string& tableName) const {
+		bool found = false;
+		for (int i = 0; i < noTableNames; i++) {
+			if (tableNames[i] == tableName) {
+				cout << endl << i + 1 << ". '" << indexNames[i] << "' on column: " << columnNames[i];
+				found = true;
+			}
+		}
+		if (!found) {
+			cout << endl << "No indexes found for table '" << tableName << "'.";
+		}
+	}
+	void showAllIndexes() const {
+		if (noIndexeNames == 0) {
+			cout << endl << "No indexes found.";
+			return;
+		}
+		for (int i = 0; i < noIndexeNames; i++) {
+			cout << endl << i + 1 << ". '" << indexNames[i] << "' on column: " << columnNames[i] << " in table: " << tableNames[i];
+		}
 	}
 };
 
@@ -1735,6 +1754,19 @@ public:
 		for (int i = 0; i < noTables; i++) {
 			cout << endl << i + 1 << ". " << database[i]->getName();
 		}
+	}
+	void showIndexFromTable(const string& tableName) const {
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		cout << endl << "Indexes for table '" << tableName << "':";
+		indexes->showIndexesByTableName(tableName);
+	}
+	void showIndexFromAll() const {
+		cout << endl << "My Indexes:";
+		indexes->showAllIndexes();
 	}
 	//--------------------------------------------------
 };
