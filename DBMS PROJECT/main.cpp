@@ -2596,6 +2596,98 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandUpdateTable(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "UPDATE "
+			if (commandCopy.find("UPDATE ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of " SET "
+			size_t setPos = commandCopy.find(" SET ");
+			if (setPos == string::npos) {
+				cout << endl << "Invalid command format. Missing 'SET'.";
+				return;
+			}
+
+			//find the position of " WHERE "
+			size_t wherePos = commandCopy.find(" WHERE ");
+			if (wherePos == string::npos) {
+				cout << endl << "Invalid command format. Missing 'WHERE'.";
+				return;
+			}
+
+			//extract the table name
+			string tableName = commandCopy.substr(7, setPos - 7);  // 7 is the length of "UPDATE "
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//extract the set part
+			string setPart = commandCopy.substr(setPos + 5, wherePos - (setPos + 5));  // 5 is the length of " SET "
+			trim(setPart);
+
+			if (setPart.empty()) {
+				cout << endl << "Invalid command format. Set part cannot be empty.";
+				return;
+			}
+
+			//split the set part into column and value
+			size_t equalPos = setPart.find('=');
+			if (equalPos == string::npos) {
+				cout << endl << "Invalid command format. Missing '=' in set part.";
+				return;
+			}
+
+			string setColumnName = setPart.substr(0, equalPos);
+			trim(setColumnName);
+			string setValue = setPart.substr(equalPos + 1);
+			trim(setValue);
+
+			if (setColumnName.empty() || setValue.empty()) {
+				cout << endl << "Invalid command format. Set column or value cannot be empty.";
+				return;
+			}
+
+			//extract the condition part
+			string conditionPart = commandCopy.substr(wherePos + 7);  // 7 is the length of " WHERE "
+			trim(conditionPart);
+
+			if (conditionPart.empty()) {
+				cout << endl << "Invalid command format. Condition cannot be empty.";
+				return;
+			}
+
+			//split the condition part into column and value
+			size_t conditionEqualPos = conditionPart.find('=');
+			if (conditionEqualPos == string::npos) {
+				cout << endl << "Invalid command format. Missing '=' in condition part.";
+				return;
+			}
+
+			string whereColumnName = conditionPart.substr(0, conditionEqualPos);
+			trim(whereColumnName);
+			string whereValue = conditionPart.substr(conditionEqualPos + 1);
+			trim(whereValue);
+
+			if (whereColumnName.empty() || whereValue.empty()) {
+				cout << endl << "Invalid command format. Condition column or value cannot be empty.";
+				return;
+			}
+
+			db->updateTable(tableName, setColumnName, setValue, whereColumnName, whereValue);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
