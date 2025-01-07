@@ -1686,7 +1686,33 @@ public:
 
 		cout << endl << "Column '" << columnName << "' deleted from table '" << tableName << "' successfully.";
 	}
+	void createIndex(const string& indexName, const string& columnName, const string& tableName) {
+		if (indexes->indexExistsByIndexName(indexName)) {
+			cout << endl << "Error: Index '" << indexName << "' already exists.";
+			return;
+		}
 
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		Table* table = database[getTableIndex(tableName)];
+		if (!table->columnExists(columnName)) {
+			cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << tableName << "'.";
+			return;
+		}
+
+		if (indexes->indexExists(columnName, tableName)) {
+			cout << endl << "Error: Index for column '" << columnName << "' in table '" << tableName << "' already exists.";
+			return;
+		}
+
+		int columnIndex = table->getColumnIndex(columnName);
+		indexes->addIndex(indexName, columnIndex, columnName, tableName);
+
+		cout << endl << "Index '" << indexName << "' created successfully on column '" << columnName << "' in table '" << tableName << "'.";
+	}
 	//--------------------------------------------------
 };
 
