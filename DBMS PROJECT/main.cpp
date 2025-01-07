@@ -1713,6 +1713,18 @@ public:
 
 		cout << endl << "Index '" << indexName << "' created successfully on column '" << columnName << "' in table '" << tableName << "'.";
 	}
+	void dropIndex(const string& indexName) {
+		if (!indexes->indexExistsByIndexName(indexName)) {
+			cout << endl << "Error: Index '" << indexName << "' does not exist.";
+			return;
+		}
+
+		string tableName = indexes->getIndexTableName(indexName);
+		string columnName = indexes->getIndexColumnName(indexName);
+
+		cout << endl << "Index '" << indexName << "' removed from table '" << tableName << "' on column '" << columnName << "'." << endl;
+		indexes->removeIndexByIndexName(indexName);
+	}
 	//--------------------------------------------------
 };
 
