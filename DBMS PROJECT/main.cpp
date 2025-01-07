@@ -1802,56 +1802,16 @@ public:
 		}
 	}
 public:
+	//every command is in a try block to avoid crashing the program and printing error messages instead
 	void stringCommandSelectAll(const string& command) {
-		string commandCopy = command;
-		trim(commandCopy);
-
-		//check if the command starts with "SELECT ALL FROM "
-		if (commandCopy.find("SELECT ALL FROM ") != 0) {    //if it does not start with "SELECT ALL FROM " with space
-			//or without a space after "FROM"
-			if (commandCopy.find("SELECT ALL FROM") == 0) {  //if it starts with "SELECT ALL FROM" without a space after
-				cout << endl << "Invalid command format.";
-			}
-			else {
-				cout << endl << "Invalid command format.";
-			}
-			return;
-		}
-
-		//find the position of "FROM " and make sure there is a space after it
-		size_t pos = commandCopy.find("FROM ") + 5;  // 5 is the length of "FROM " with the space
-		if (pos >= commandCopy.length()) {
-			cout << endl << "Invalid command format. Too few arguments.";
-			return;
-		}
-
-		//get the table name
-		string tableName = commandCopy.substr(pos);
-		trim(tableName);
-
-		if (tableName.empty()) {
-			cout << endl << "Invalid command format. Too few arguments.";
-			return;
-		}
-
-		//check for extra arguments
-		size_t extraArgsPos = tableName.find(' ');
-		if (extraArgsPos != string::npos) {
-			cout << endl << "Invalid command format. Too many arguments.";
-			return;
-		}
-
-		db->selectALL(tableName);
-	}
-	void stringCommandCreateTable(const string& command) {
 		try {
 			string commandCopy = command;
 			trim(commandCopy);
 
-			//check if command starts with "CREATE TABLE "
-			if (commandCopy.find("CREATE TABLE ") != 0) {
-				//or without a space after "TABLE"
-				if (commandCopy.find("CREATE TABLE") == 0) {
+			//check if the command starts with "SELECT ALL FROM "
+			if (commandCopy.find("SELECT ALL FROM ") != 0) {    //if it does not start with "SELECT ALL FROM " with space
+				//or without a space after "FROM"
+				if (commandCopy.find("SELECT ALL FROM") == 0) {  //if it starts with "SELECT ALL FROM" without a space after
 					cout << endl << "Invalid command format.";
 				}
 				else {
@@ -1860,19 +1820,19 @@ public:
 				return;
 			}
 
-			//find the position of the first '('
-			size_t pos = commandCopy.find("(");
-			if (pos == string::npos) {  //if it reached the end of the string and did not find '('
-				cout << endl << "Invalid command format. Missing '('.";
+			//find the position of "FROM " and make sure there is a space after it
+			size_t pos = commandCopy.find("FROM ") + 5;  // 5 is the length of "FROM " with the space
+			if (pos >= commandCopy.length()) {
+				cout << endl << "Invalid command format. Too few arguments.";
 				return;
 			}
 
 			//get the table name
-			string tableName = commandCopy.substr(13, pos - 13);  // 13 is the length of "CREATE TABLE " with a space after
+			string tableName = commandCopy.substr(pos);
 			trim(tableName);
 
 			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
+				cout << endl << "Invalid command format. Too few arguments.";
 				return;
 			}
 
@@ -1883,15 +1843,48 @@ public:
 				return;
 			}
 
+			db->selectALL(tableName);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandCreateTable(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if command starts with "CREATE TABLE "
+			if (commandCopy.find("CREATE TABLE ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of the first '('
+			size_t pos = commandCopy.find("(");
+			if (pos == string::npos) {
+				cout << endl << "Invalid command format. Missing '('.";
+				return;
+			}
+
+			//get the table name
+			string tableName = commandCopy.substr(13, pos - 13);  // 13 is the length of "CREATE TABLE "
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
 			//find the position of the last ')'
 			size_t endPos = commandCopy.find_last_of(")");
 			if (endPos == string::npos) {
 				cout << endl << "Invalid command format. Missing ')'.";
 				return;
 			}
-			//--------------------------------------------------
-			//GET THE COLUMNS
-			string columnsPart = commandCopy.substr(pos + 1, endPos - pos - 1);  // -1 to exclude the last ')' // from after '(' to before ')'
+
+			//get the columns part
+			string columnsPart = commandCopy.substr(pos + 1, endPos - pos - 1);  // from after '(' to before ')'
 			trim(columnsPart);
 
 			if (columnsPart.empty()) {
@@ -1902,7 +1895,7 @@ public:
 			//split the columns part into individual columns
 			string* columns = nullptr;
 			int noColumns = 0;
-			splitCommand(columnsPart, ",", columns, noColumns);
+			splitCommand(columnsPart, "), (", columns, noColumns);
 
 			if (noColumns == 0) {
 				cout << endl << "Invalid command format. No columns specified.";
@@ -1914,10 +1907,14 @@ public:
 				string column = columns[i];
 				trim(column);
 
+				//remove leading and trailing parentheses
+				if (column.front() == '(') column.erase(0, 1);
+				if (column.back() == ')') column.pop_back();
+
 				//split the column into individual parts
 				string* columnParts = nullptr;
 				int noParts = 0;
-				splitCommand(column, " ", columnParts, noParts);
+				splitCommand(column, ",", columnParts, noParts);
 
 				if (noParts < 4 || noParts > 5) {
 					cout << endl << "Invalid command format. Invalid column format.";
@@ -1971,24 +1968,6 @@ public:
 				string columnDefaultValue = columnParts[3];
 				trim(columnDefaultValue);
 
-				if (columnDefaultValue.empty()) {
-					cout << endl << "Invalid command format. Column default value cannot be empty.";
-					delete[] columnParts;
-					delete[] columns;
-					delete[] tableColumns;
-					return;
-				}
-
-				//check for extra arguments
-				size_t extraArgsPos = columnDefaultValue.find(' ');
-				if (extraArgsPos != string::npos) {
-					cout << endl << "Invalid command format. Too many arguments.";
-					delete[] columnParts;
-					delete[] columns;
-					delete[] tableColumns;
-					return;
-				}
-
 				//check if column is unique
 				bool unique = false;
 				if (noParts == 5) {
@@ -2015,75 +1994,85 @@ public:
 			delete[] columns;
 			delete[] tableColumns;
 		}
-		catch (const invalid_argument& e) {  //handle any error like invalid column type or size etc.
+		catch (const invalid_argument& e) {
 			cout << endl << e.what();
 		}
 	}
 	void stringCommandDropTable(const string& command) {
-		string commandCopy = command;
-		trim(commandCopy);
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
 
-		//check if the command starts with "DROP TABLE "
-		if (commandCopy.find("DROP TABLE ") != 0) {
-			if (commandCopy.find("DROP TABLE") == 0) {
-				cout << endl << "Invalid command format.";
+			//check if the command starts with "DROP TABLE "
+			if (commandCopy.find("DROP TABLE ") != 0) {
+				if (commandCopy.find("DROP TABLE") == 0) {
+					cout << endl << "Invalid command format.";
+				}
+				else {
+					cout << endl << "Invalid command format.";
+				}
+				return;
 			}
-			else {
-				cout << endl << "Invalid command format.";
+
+			//get the table name
+			string tableName = commandCopy.substr(11);  // 11 is the length of "DROP TABLE " with a space after
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Too few arguments.";
+				return;
 			}
-			return;
+
+			//check for extra arguments
+			size_t extraArgsPos = tableName.find(' ');
+			if (extraArgsPos != string::npos) {
+				cout << endl << "Invalid command format. Too many arguments.";
+				return;
+			}
+
+			db->dropTable(tableName);
 		}
-
-		//get the table name
-		string tableName = commandCopy.substr(11);  // 11 is the length of "DROP TABLE " with a space after
-		trim(tableName);
-
-		if (tableName.empty()) {
-			cout << endl << "Invalid command format. Too few arguments.";
-			return;
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
 		}
-
-		//check for extra arguments
-		size_t extraArgsPos = tableName.find(' ');
-		if (extraArgsPos != string::npos) {
-			cout << endl << "Invalid command format. Too many arguments.";
-			return;
-		}
-
-		db->dropTable(tableName);
 	}
 	void stringCommandDescribe(const string& command) {
-		string commandCopy = command;
-		trim(commandCopy);
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
 
-		//check if the command starts with "DESCRIBE "
-		if (commandCopy.find("DESCRIBE ") != 0) {
-			if (commandCopy.find("DESCRIBE") == 0) {
-				cout << endl << "Invalid command format.";
+			//check if the command starts with "DESCRIBE "
+			if (commandCopy.find("DESCRIBE ") != 0) {
+				if (commandCopy.find("DESCRIBE") == 0) {
+					cout << endl << "Invalid command format.";
+				}
+				else {
+					cout << endl << "Invalid command format.";
+				}
+				return;
 			}
-			else {
-				cout << endl << "Invalid command format.";
+
+			//get the table name
+			string tableName = commandCopy.substr(9);  // 9 is the length of "DESCRIBE " with a space after
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Too few arguments.";
+				return;
 			}
-			return;
+
+			//check for extra arguments
+			size_t extraArgsPos = tableName.find(' ');
+			if (extraArgsPos != string::npos) {
+				cout << endl << "Invalid command format. Too many arguments.";
+				return;
+			}
+
+			db->describeTable(tableName);
 		}
-
-		//get the table name
-		string tableName = commandCopy.substr(9);  // 9 is the length of "DESCRIBE " with a space after
-		trim(tableName);
-
-		if (tableName.empty()) {
-			cout << endl << "Invalid command format. Too few arguments.";
-			return;
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
 		}
-
-		//check for extra arguments
-		size_t extraArgsPos = tableName.find(' ');
-		if (extraArgsPos != string::npos) {
-			cout << endl << "Invalid command format. Too many arguments.";
-			return;
-		}
-
-		db->describeTable(tableName);
 	}
 	void stringCommandinsertIntoValues(const string& command) {
 		try {
@@ -2330,6 +2319,126 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandSelectWhere(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "SELECT "
+			if (commandCopy.find("SELECT ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of "FROM "
+			size_t fromPos = commandCopy.find("FROM ");
+			if (fromPos == string::npos) {
+				cout << endl << "Invalid command format. Missing 'FROM'.";
+				return;
+			}
+
+			//make sure there is a space before "FROM "
+			if (commandCopy[fromPos - 1] != ' ') {
+				cout << endl << "Invalid command format. Missing space before 'FROM'.";
+				return;
+			}
+
+			//get the columns part
+			string columnsPart = commandCopy.substr(7, fromPos - 8);  // 7 is the length of "SELECT " with a space
+			trim(columnsPart);
+
+			if (columnsPart.empty()) {
+				cout << endl << "Invalid command format. Columns cannot be empty.";
+				return;
+			}
+
+			//count the number of columns
+			int noColumns = 1;
+			for (char c : columnsPart) {
+				if (c == ',') {
+					noColumns++;
+				}
+			}
+
+			//split the columns part into individual columns
+			string* columns = new string[noColumns];
+			size_t start = 0;
+			size_t end = columnsPart.find(',');
+			int index = 0;
+
+			while (end != string::npos) {
+				columns[index] = columnsPart.substr(start, end - start);
+				trim(columns[index]);
+				start = end + 1;
+				end = columnsPart.find(',', start);
+				index++;
+			}
+
+			//add the last column
+			columns[index] = columnsPart.substr(start);
+			trim(columns[index]);
+
+			if (noColumns == 0) {
+				cout << endl << "Invalid command format. No columns specified.";
+				delete[] columns;
+				return;
+			}
+
+			//find the position of "WHERE "
+			size_t wherePos = commandCopy.find(" WHERE ");
+			if (wherePos == string::npos) {
+				cout << endl << "Invalid command format. Missing 'WHERE' or missing space before 'WHERE'.";
+				delete[] columns;
+				return;
+			}
+
+			//get the table name
+			string tableName = commandCopy.substr(fromPos + 5, wherePos - (fromPos + 5));  // 5 is the length of "FROM " with a space
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				delete[] columns;
+				return;
+			}
+
+			//get the condition part
+			string conditionPart = commandCopy.substr(wherePos + 7);  // 7 is the length of " WHERE " with spaces
+			trim(conditionPart);
+
+			if (conditionPart.empty()) {
+				cout << endl << "Invalid command format. Condition cannot be empty.";
+				delete[] columns;
+				return;
+			}
+
+			//split the condition part into column and value
+			size_t equalPos = conditionPart.find('=');
+			if (equalPos == string::npos) {
+				cout << endl << "Invalid command format. Missing '=' in condition.";
+				delete[] columns;
+				return;
+			}
+
+			string conditionColumn = conditionPart.substr(0, equalPos);
+			trim(conditionColumn);
+			string conditionValue = conditionPart.substr(equalPos + 1);
+			trim(conditionValue);
+
+			if (conditionColumn.empty() || conditionValue.empty()) {
+				cout << endl << "Invalid command format. Condition column or value cannot be empty.";
+				delete[] columns;
+				return;
+			}
+
+			db->selectWHERE(tableName, columns, noColumns, conditionColumn, conditionValue);
+
+			delete[] columns;
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
@@ -2339,8 +2448,10 @@ int main() {
 	Database db;
 	Commands commands(&db);
 
+	//db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0,1", true), Column("Name", TEXT, 20, ""), Column("Price", FLOAT, 10, "0.0.0.0") }, 3);
 	//db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0", true), Column("Name", TEXT, 20, ""), Column("Price", FLOAT, 10, "0.0f") }, 3);
-	//db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0", true), Column("Name", TEXT, 20, ""), Column("Price", FLOAT, 10, "0.0f") }, 3);
+	//db.createIndex("IDIndex", "Name", "Products");
+	//db.dropIndex("NameIndex");
 	//db.insertIntoTable("Products", new string[3]{ "1", "Laptop", "999.99" }, 3);
 	//db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3);
 	//db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3); //error because not unique id
@@ -2355,14 +2466,32 @@ int main() {
 	//db.selectColumns("Products", new string[2]{ "ID", "Name" }, 2);
 	//db.dropTable("Products");
 
-	string create = "CREATE TABLE Products (ID INT 5 0 UNIQUE, Name TEXT 20 unknown, Price FLOAT 10 0.0f)";
+	string create = "CREATE TABLE Products ((ID, INT, 5, 123, UNIQUE), (Name, TEXT, 20, unknown), (Price, FLOAT, 10, 0.0))";
 	commands.stringCommandCreateTable(create);
+
+	string insert = "INSERT INTO Products VALUES (123, Laptop, 0.0)";
+	commands.stringCommandinsertIntoValues(insert);
+
+	string insert2 = "INSERT INTO Products VALUES (124, Car,0.2)";
+	commands.stringCommandinsertIntoValues(insert2);
+
+	string deleteFrom = "DELETE FROM Products WHERE ID = 123";
+	commands.stringCommandDeleteFromWhere(deleteFrom);
+
 	string select = "SELECT ALL FROM Products";
 	commands.stringCommandSelectAll(select);
+
 	string describe = "DESCRIBE Products";
 	commands.stringCommandDescribe(describe);
-	//string drop = "DROP TABLE Products";
-	//commands.stringCommandDropTable(drop);
+
+	string selectColumns = "SELECT ID,Name, Price FROM Products";
+	commands.stringCommandSelectColumns(selectColumns);
+
+	string selectWhere = "SELECT ID, Name FROM Products WHERE Price = 0.2";
+	commands.stringCommandSelectWhere(selectWhere);
+
+	string drop = "DROP TABLE Products";
+	commands.stringCommandDropTable(drop);
 
 	return 0;
 }
