@@ -148,6 +148,48 @@ private:
 	string* data = nullptr;
 	int noColumns = 0;
 
+	bool isValidInt(const string& value) const {
+		if (value.empty()) return false;
+		size_t i = 0;
+
+		//handle negative sign
+		if (value[0] == '-') {
+			if (value.length() == 1) return false; // "-" alone is not a valid integer
+			i++;
+		}
+
+		//check that all remaining characters are digits
+		for (; i < value.length(); i++) {
+			if (value[i] < '0' || value[i] > '9') {
+				return false; //non-digit character found
+			}
+		}
+
+		return true;
+	}
+	bool isValidFloat(const string& value) const {
+		if (value.empty()) return false;
+		size_t i = 0;
+		bool decimalPointFound = false;
+
+		if (value[0] == '-') {
+			if (value.length() == 1) return false;
+			i++;
+		}
+
+		//iterate through the characters
+		for (; i < value.length(); i++) {
+			if (value[i] == '.') {
+				if (decimalPointFound) return false; //more than one decimal point
+				decimalPointFound = true;
+			}
+			else if (value[i] < '0' || value[i] > '9') {
+				return false; //non-digit character found
+			}
+		}
+
+		return true;
+	}
 public:
 	//DESTRUCTOR
 	~Row() {
@@ -184,50 +226,57 @@ public:
 		return *this;
 	}
 	//SETTERS
-	void setIntData(int columnIndex, int value) {
-		if (columnIndex < 0 || columnIndex >= noColumns)
-			throw out_of_range("Column index out of range.");
-
-		data[columnIndex] = to_string(value);
-	}
 	void setStringData(int columnIndex, const string& value) {
 		if (columnIndex < 0 || columnIndex >= noColumns)
 			throw out_of_range("Column index out of range.");
 
 		data[columnIndex] = value;
 	}
-	void setFloatData(int columnIndex, float value) {
+	void setIntData(int columnIndex, const string& value) {
 		if (columnIndex < 0 || columnIndex >= noColumns)
 			throw out_of_range("Column index out of range.");
 
-		data[columnIndex] = to_string(value);
+		if (!isValidInt(value)) {
+			throw invalid_argument("Provided value is not a valid integer.");
+		}
+
+		data[columnIndex] = value;
 	}
+	void setFloatData(int columnIndex, const string& value) {
+		if (columnIndex < 0 || columnIndex >= noColumns)
+			throw out_of_range("Column index out of range.");
+
+		if (!isValidFloat(value)) {
+			throw invalid_argument("Provided value is not a valid float.");
+		}
+
+		data[columnIndex] = value;
+	}
+
 	//GETTERS
 	int getIntData(int columnIndex) const {
 		if (columnIndex < 0 || columnIndex >= noColumns)
 			throw out_of_range("Column index out of range.");
-		try {
-			return stoi(data[columnIndex]);
-		}
-		catch (const invalid_argument&) {
+		if (!isValidInt(data[columnIndex])) {
 			throw invalid_argument("Data at the specified index is not a valid integer.");
 		}
+		return stoi(data[columnIndex]);
 	}
+
 	string getTextData(int columnIndex) const {
 		if (columnIndex < 0 || columnIndex >= noColumns)
 			throw out_of_range("Column index out of range.");
 
 		return data[columnIndex];
 	}
+
 	float getFloatData(int columnIndex) const {
 		if (columnIndex < 0 || columnIndex >= noColumns)
 			throw out_of_range("Column index out of range.");
-		try {
-			return stof(data[columnIndex]);
-		}
-		catch (const invalid_argument&) {
+		if (!isValidFloat(data[columnIndex])) {
 			throw invalid_argument("Data at the specified index is not a valid float.");
 		}
+		return stof(data[columnIndex]);
 	}
 };
 
