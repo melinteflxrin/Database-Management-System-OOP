@@ -2085,6 +2085,79 @@ public:
 
 		db->describeTable(tableName);
 	}
+	void stringCommandinsertIntoValues(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "INSERT INTO "
+			if (commandCopy.find("INSERT INTO ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of "VALUES "
+			size_t pos = commandCopy.find("VALUES ");
+			if (pos == string::npos) {
+				cout << endl << "Invalid command format. Missing 'VALUES'.";
+				return;
+			}
+
+			//get the table name
+			string tableName = commandCopy.substr(12, pos - 12);  // 12 is the length of "INSERT INTO " with a space
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//find the position of the first '('
+			size_t startPos = commandCopy.find("(");
+			if (startPos == string::npos) {
+				cout << endl << "Invalid command format. Missing '('.";
+				return;
+			}
+
+			//find the position of the last ')'
+			size_t endPos = commandCopy.find_last_of(")");
+			if (endPos == string::npos) {
+				cout << endl << "Invalid command format. Missing ')'.";
+				return;
+			}
+
+			//get the values part
+			string valuesPart = commandCopy.substr(startPos + 1, endPos - startPos - 1);  // from after '(' to before ')'
+			trim(valuesPart);
+
+			if (valuesPart.empty()) {
+				cout << endl << "Invalid command format. Values cannot be empty.";
+				return;
+			}
+
+			//split the values part into individual values
+			string* values = nullptr;
+			int noValues = 0;
+			splitCommand(valuesPart, ",", values, noValues);
+
+			if (noValues == 0) {
+				cout << endl << "Invalid command format. No values specified.";
+				return;
+			}
+
+			//trim each value individually
+			for (int i = 0; i < noValues; i++) {
+				trim(values[i]);
+			}
+
+			db->insertIntoTable(tableName, values, noValues);
+
+			delete[] values;
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
