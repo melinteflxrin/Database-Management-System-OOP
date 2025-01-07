@@ -3047,6 +3047,40 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandClearConsole(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command is "clear"
+			if (commandCopy != "clear") {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			system("cls");
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandExitProgram(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command is "exit"
+			if (commandCopy != "exit") {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			exit(0);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
