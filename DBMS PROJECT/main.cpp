@@ -3012,6 +3012,41 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandHelpMenu(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command is "help"
+			if (commandCopy != "help") {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			db->printHelpMenu();
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandSyntaxMenu(const string& command) {
+		try {
+			system("cls");
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command is "help 2"
+			if (commandCopy != "help 2") {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			db->printSyntaxMenu();
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
