@@ -361,6 +361,313 @@ public:
 	}
 };
 
+class Index {
+private:
+	string* indexNames = nullptr;  //this is to check if index w a name already exists
+	int noIndexeNames = 0;
+	int* indexValues = nullptr;   //column position in a specific table
+	int noIndexValues = 0;
+	string* columnNames = nullptr;  //column names to check if there is an index on them
+	int noColumnNames = 0;
+	string* tableNames = nullptr;   //table names to check if there is an index on them
+	int noTableNames = 0;
+public:
+	//DESTRUCTOR
+	~Index() {
+		delete[] indexNames;
+		delete[] indexValues;
+		delete[] columnNames;
+		delete[] tableNames;
+	}
+	//DEFAULT CONSTRUCTOR
+	Index() {
+		this->indexNames = nullptr;
+		this->noIndexeNames = 0;
+		this->indexValues = nullptr;
+		this->noIndexValues = 0;
+		this->columnNames = nullptr;
+		this->noColumnNames = 0;
+		this->tableNames = nullptr;
+		this->noTableNames = 0;
+	}
+	//ASSIGNMENT OPERATOR
+	Index& operator=(const Index& original) {
+		if (this == &original) return *this; // self assignment check
+
+		delete[] indexNames;
+		delete[] indexValues;
+		delete[] columnNames;
+		delete[] tableNames;
+
+		noIndexeNames = original.noIndexeNames;
+		indexNames = new string[noIndexeNames];
+		for (int i = 0; i < noIndexeNames; i++) {
+			indexNames[i] = original.indexNames[i];
+		}
+
+		noIndexValues = original.noIndexValues;
+		indexValues = new int[noIndexValues];
+		for (int i = 0; i < noIndexValues; i++) {
+			indexValues[i] = original.indexValues[i];
+		}
+
+		noColumnNames = original.noColumnNames;
+		columnNames = new string[noColumnNames];
+		for (int i = 0; i < noColumnNames; i++) {
+			columnNames[i] = original.columnNames[i];
+		}
+
+		noTableNames = original.noTableNames;
+		tableNames = new string[noTableNames];
+		for (int i = 0; i < noTableNames; i++) {
+			tableNames[i] = original.tableNames[i];
+		}
+
+		return *this;
+	}
+	//COPY CONSTRUCTOR
+	Index(const Index& original) : noIndexeNames(original.noIndexeNames), noIndexValues(original.noIndexValues), noColumnNames(original.noColumnNames), noTableNames(original.noTableNames) {
+		indexNames = new string[noIndexeNames];
+		for (int i = 0; i < noIndexeNames; i++) {
+			indexNames[i] = original.indexNames[i];
+		}
+	}
+	//**************************************
+	void addIndex(const string& indexName, int indexValue, const string& columnName, const string& tableName) {
+		string* newIndexNames = new string[noIndexeNames + 1];
+		int* newIndexValues = new int[noIndexValues + 1];
+		string* newColumnNames = new string[noColumnNames + 1];
+		string* newTableNames = new string[noTableNames + 1];
+
+		if (indexNames != nullptr) {
+			for (int i = 0; i < noIndexeNames; i++) {
+				newIndexNames[i] = indexNames[i];
+			}
+		}
+		newIndexNames[noIndexeNames] = indexName;
+		delete[] indexNames;
+		indexNames = newIndexNames;
+		noIndexeNames++;
+
+		if (indexValues != nullptr) {
+			for (int i = 0; i < noIndexValues; i++) {
+				newIndexValues[i] = indexValues[i];
+			}
+		}
+		newIndexValues[noIndexValues] = indexValue;
+		delete[] indexValues;
+		indexValues = newIndexValues;
+		noIndexValues++;
+
+		if (columnNames != nullptr) {
+			for (int i = 0; i < noColumnNames; i++) {
+				newColumnNames[i] = columnNames[i];
+			}
+		}
+		newColumnNames[noColumnNames] = columnName;
+		delete[] columnNames;
+		columnNames = newColumnNames;
+		noColumnNames++;
+
+		if (tableNames != nullptr) {
+			for (int i = 0; i < noTableNames; i++) {
+				newTableNames[i] = tableNames[i];
+			}
+		}
+		newTableNames[noTableNames] = tableName;
+		delete[] tableNames;
+		tableNames = newTableNames;
+		noTableNames++;
+	}
+	void removeIndex(const string& columnName, const string& tableName) {
+		int index = -1;
+		for (int i = 0; i < noColumnNames; i++) {
+			if (columnNames[i] == columnName && tableNames[i] == tableName) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index == -1) {
+			cout << endl << "Index not found.";
+			return;
+		}
+
+		string* newIndexNames = new string[noIndexeNames - 1];
+		int* newIndexValues = new int[noIndexValues - 1];
+		string* newColumnNames = new string[noColumnNames - 1];
+		string* newTableNames = new string[noTableNames - 1];
+
+		int tempIndex = 0;
+		for (int i = 0; i < noIndexeNames; i++) {
+			if (i != index) {
+				newIndexNames[tempIndex] = indexNames[i];
+				newIndexValues[tempIndex] = indexValues[i];
+				newColumnNames[tempIndex] = columnNames[i];
+				newTableNames[tempIndex] = tableNames[i];
+				tempIndex++;
+			}
+		}
+
+		delete[] indexNames;
+		delete[] indexValues;
+		delete[] columnNames;
+		delete[] tableNames;
+
+		indexNames = newIndexNames;
+		indexValues = newIndexValues;
+		columnNames = newColumnNames;
+		tableNames = newTableNames;
+
+		noIndexeNames--;
+		noIndexValues--;
+		noColumnNames--;
+		noTableNames--;
+	}
+	void removeIndexByIndexName(const string& indexName) {
+		int index = -1;
+		for (int i = 0; i < noIndexeNames; i++) {
+			if (indexNames[i] == indexName) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index == -1) {
+			cout << endl << "Index not found.";
+			return;
+		}
+
+		string* newIndexNames = new string[noIndexeNames - 1];
+		int* newIndexValues = new int[noIndexValues - 1];
+		string* newColumnNames = new string[noColumnNames - 1];
+		string* newTableNames = new string[noTableNames - 1];
+
+		int tempIndex = 0;
+		for (int i = 0; i < noIndexeNames; i++) {
+			if (i != index) {
+				newIndexNames[tempIndex] = indexNames[i];
+				newIndexValues[tempIndex] = indexValues[i];
+				newColumnNames[tempIndex] = columnNames[i];
+				newTableNames[tempIndex] = tableNames[i];
+				tempIndex++;
+			}
+		}
+
+		delete[] indexNames;
+		delete[] indexValues;
+		delete[] columnNames;
+		delete[] tableNames;
+
+		indexNames = newIndexNames;
+		indexValues = newIndexValues;
+		columnNames = newColumnNames;
+		tableNames = newTableNames;
+
+		noIndexeNames--;
+		noIndexValues--;
+		noColumnNames--;
+		noTableNames--;
+	}
+	void removeIndexByTableName(const string& tableName) {
+		int index = -1;
+		for (int i = 0; i < noTableNames; i++) {
+			if (tableNames[i] == tableName) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index == -1) {
+			cout << endl << "Index not found.";
+			return;
+		}
+
+		string* newIndexNames = new string[noIndexeNames - 1];
+		int* newIndexValues = new int[noIndexValues - 1];
+		string* newColumnNames = new string[noColumnNames - 1];
+		string* newTableNames = new string[noTableNames - 1];
+
+		int tempIndex = 0;
+		for (int i = 0; i < noIndexeNames; i++) {
+			if (i != index) {
+				newIndexNames[tempIndex] = indexNames[i];
+				newIndexValues[tempIndex] = indexValues[i];
+				newColumnNames[tempIndex] = columnNames[i];
+				newTableNames[tempIndex] = tableNames[i];
+				tempIndex++;
+			}
+		}
+
+		delete[] indexNames;
+		delete[] indexValues;
+		delete[] columnNames;
+		delete[] tableNames;
+
+		indexNames = newIndexNames;
+		indexValues = newIndexValues;
+		columnNames = newColumnNames;
+		tableNames = newTableNames;
+
+		noIndexeNames--;
+		noIndexValues--;
+		noColumnNames--;
+		noTableNames--;
+	}
+	//**************************************
+	bool indexExistsByIndexName(const string& indexName) const {  //for create index
+		for (int i = 0; i < noIndexeNames; i++) {
+			if (indexNames[i] == indexName) {
+				return true;
+			}
+		}
+		return false;
+	}
+	bool indexExists(const string& columnName, const string& tableName) const {  //for select where & delete where
+		for (int i = 0; i < noColumnNames; i++) {
+			if (columnNames[i] == columnName && tableNames[i] == tableName) {
+				return true;
+			}
+		}
+		return false;
+	}
+	bool indexExistsByTableName(const string& tableName) const {
+		//for drop table
+		for (int i = 0; i < noTableNames; i++) {
+			if (tableNames[i] == tableName) {
+				return true;
+			}
+		}
+		return false;
+	}
+	int getIndexValue(const string& columnName, const string& tableName) const {
+		for (int i = 0; i < noColumnNames; i++) {
+			if (columnNames[i] == columnName && tableNames[i] == tableName) {
+				return indexValues[i];
+			}
+		}
+		return -1;
+	}
+	string getIndexColumnName(const string& indexName) const {
+		for (int i = 0; i < noIndexeNames; i++) {
+			if (indexNames[i] == indexName) {
+				cout << "Found index: " << indexName << " on column: " << columnNames[i] << endl;
+				return columnNames[i];
+			}
+		}
+		cout << endl << "Index: " << indexName << " not found." << endl;
+		return "";
+	}
+	string getIndexTableName(const string& indexName) const {
+		for (int i = 0; i < noIndexeNames; i++) {
+			if (indexNames[i] == indexName) {
+				return tableNames[i];
+			}
+		}
+		return "";
+	}
+};
+
 class Table {
 private:
 	string name = "";
@@ -582,13 +889,13 @@ public:
 			//setting the value
 			switch (column.getType()) {
 			case INT:
-				newRow->setIntData(i, stoi(values[i]));
+				newRow->setIntData(i, values[i]);
 				break;
 			case TEXT:
 				newRow->setStringData(i, values[i]);
 				break;
 			case FLOAT:
-				newRow->setFloatData(i, stof(values[i]));
+				newRow->setFloatData(i, values[i]);
 				break;
 			case BOOLEAN:
 				newRow->setStringData(i, values[i] == "TRUE" ? "TRUE" : "FALSE");
@@ -624,6 +931,13 @@ public:
 			}
 		}
 		return false;
+	}
+
+	bool columnExistsByIndex(int index) const {
+		if (index < 0 || index >= noColumns) {
+			return false;
+		}
+		return true;
 	}
 
 	void deleteColumn(const string& name) {
@@ -674,6 +988,45 @@ public:
 		}
 	}
 
+	void deleteColumnByIndex(int index) {
+		if (index < 0 || index >= noColumns) {
+			cout << endl << "Error: Invalid column index.";
+			return;
+		}
+
+		Column** tempColumns = new Column * [noColumns - 1];
+		int tempIndex = 0;
+
+		for (int i = 0; i < noColumns; i++) {
+			if (i != index) {
+				tempColumns[tempIndex++] = columns[i];
+			}
+			else {
+				delete columns[i];
+			}
+		}
+
+		delete[] columns;
+		columns = tempColumns;
+		noColumns--;
+
+		for (int i = 0; i < noRows; i++) {
+			Row* updatedRow = new Row(noColumns);
+
+			for (int j = 0; j < noColumns; j++) {
+				if (j < index) {
+					updatedRow->setStringData(j, rows[i]->getTextData(j));
+				}
+				else {
+					updatedRow->setStringData(j, rows[i]->getTextData(j + 1));
+				}
+			}
+
+			delete rows[i];
+			rows[i] = updatedRow;
+		}
+	}
+
 	void addColumn(const Column& newColumn) {
 		Column** tempColumns = new Column * [noColumns + 1];
 		for (int i = 0; i < noColumns; ++i) {
@@ -695,13 +1048,13 @@ public:
 
 			switch (newColumn.getType()) {
 			case INT:
-				updatedRow->setIntData(noColumns - 1, stoi(newColumn.getDefaultValue()));
+				updatedRow->setIntData(noColumns - 1, newColumn.getDefaultValue());
 				break;
 			case TEXT:
 				updatedRow->setStringData(noColumns - 1, newColumn.getDefaultValue());
 				break;
 			case FLOAT:
-				updatedRow->setFloatData(noColumns - 1, stof(newColumn.getDefaultValue()));
+				updatedRow->setFloatData(noColumns - 1, newColumn.getDefaultValue());
 				break;
 			case BOOLEAN:
 				updatedRow->setStringData(noColumns - 1, newColumn.getDefaultValue() == "true" ? "true" : "false");
