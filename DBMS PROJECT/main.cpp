@@ -840,6 +840,18 @@ public:
 		}
 		throw invalid_argument("Column not found.");
 	}
+	const ColumnType getColumnType(int index) const {
+		if (index < 0 || index >= this->noColumns) {
+			throw out_of_range("Invalid column index.");
+		}
+		return this->columns[index]->getType();
+	}
+	const int getColumnSize(int index) const {
+		if (index < 0 || index >= this->noColumns) {
+			throw out_of_range("Invalid column index.");
+		}
+		return this->columns[index]->getSize();
+	}
 	int getColumnIndex(const string& name) const {
 		for (int i = 0; i < noColumns; i++) {
 			if (columns[i]->getName() == name) {
@@ -939,6 +951,8 @@ public:
 		delete[] this->rows;
 		this->rows = tempRows;
 		this->noRows++;
+
+		cout << endl << "Values inserted into table '" << name << "' successfully.";
 	}
 
 	//--------------------------------------------------
@@ -1093,61 +1107,79 @@ public:
 	//--------------------------------------------------
 	//ONLY PRINTS THE TABLE STRUCTURE WITHOUT THE CONTENTS (only columns)
 	void describeTable() const {
-		//display borders and stuff
-		cout << endl << "Table name: " << this->getName();
-		cout << endl << "Column\t\tType\t\tSize\t\tDefault value\t\tUnique";
-		cout << endl << "--------------------------------------------------------------------------";
+		cout << endl << "Table name: " << this->getName() << endl;
 
+		//maximum width for each column
+		int maxNameWidth = 6; // "Column" length
+		int maxTypeWidth = 4; // "Type" length
+		int maxSizeWidth = 4; // "Size" length
+		int maxDefaultValueWidth = 13; // "Default value" length
+		int maxUniqueWidth = 6; // "Unique" length
+
+		for (int i = 0; i < noColumns; i++) {
+			maxNameWidth = max(maxNameWidth, (int)getColumn(i).getName().length());
+			maxTypeWidth = max(maxTypeWidth, (int)getColumnTypeName(getColumn(i).getType()).length());
+			maxSizeWidth = max(maxSizeWidth, (int)to_string(getColumn(i).getSize()).length());
+			maxDefaultValueWidth = max(maxDefaultValueWidth, (int)getColumn(i).getDefaultValue().length());
+		}
+
+		//total width for the separator line
+		int totalWidth = maxNameWidth + maxTypeWidth + maxSizeWidth + maxDefaultValueWidth + maxUniqueWidth + 8 * 5;
+
+		//print header
+		cout << endl
+			<< "Column" << string(maxNameWidth - 6 + 8, ' ')
+			<< "Type" << string(maxTypeWidth - 4 + 8, ' ')
+			<< "Size" << string(maxSizeWidth - 4 + 8, ' ')
+			<< "Default value" << string(maxDefaultValueWidth - 13 + 8, ' ')
+			<< "Unique";
+		cout << endl << string(totalWidth, '-');
+
+		//print details for each column
 		for (int i = 0; i < noColumns; i++) {
 			cout << endl;
 
-			//NAME
-			cout << getColumn(i).getName() << "\t\t";
+			// NAME
+			cout << getColumn(i).getName() << string(maxNameWidth - getColumn(i).getName().length() + 8, ' ');
 
-			//TYPE
-			switch (getColumn(i).getType()) { // Display type from enum
-			case INT: cout << "INT"; break;
-			case TEXT: cout << "TEXT"; break;
-			case FLOAT: cout << "FLOAT"; break;
-			case BOOLEAN: cout << "BOOLEAN"; break;
-			case DATE: cout << "DATE"; break;
-			}
+			// TYPE
+			cout << getColumnTypeName(getColumn(i).getType()) << string(maxTypeWidth - getColumnTypeName(getColumn(i).getType()).length() + 8, ' ');
 
-			//SIZE
-			cout << "\t\t" << getColumn(i).getSize() << "\t\t";
+			// SIZE
+			cout << getColumn(i).getSize() << string(maxSizeWidth - to_string(getColumn(i).getSize()).length() + 8, ' ');
 
-			//DEFAULT VALUE
-			if (getColumn(i).getType() == INT) {
-				cout << getColumn(i).getDefaultValue();
-			}
-			else if (getColumn(i).getType() == TEXT) {
-				cout << getColumn(i).getDefaultValue();
-			}
-			else if (getColumn(i).getType() == FLOAT) {
-				cout << getColumn(i).getDefaultValue();
-			}
-			else {
-				cout << "N/A";
-			}
+			// DEFAULT VALUE
+			cout << getColumn(i).getDefaultValue() << string(maxDefaultValueWidth - getColumn(i).getDefaultValue().length() + 8, ' ');
 
-			//UNIQUE
-			cout << "\t\t" << (getColumn(i).isUnique() ? "Yes" : "No") << endl;
+			// UNIQUE
+			cout << (getColumn(i).isUnique() ? "Yes" : "No");
 		}
-		cout << endl << "-------------------------------------------------------------" << endl;
+		cout << endl << string(totalWidth, '-') << endl;
 	}
-
+	string getColumnTypeName(ColumnType type) const {
+		switch (type) {
+		case INT: return "INT";
+		case TEXT: return "TEXT";
+		case FLOAT: return "FLOAT";
+		case BOOLEAN: return "BOOLEAN";
+		case DATE: return "DATE";
+		default: return "UNKNOWN";
+		}
+	}
 	//DISPLAY CONTENTS AND EVERYTHING (columns and rows)
 	void displayTable() const {
-		cout << endl << "Table: " << this->getName();
-		cout << endl << "-------------------------------------------------------------" << endl;
+		cout << endl << "Table: " << this->getName() << endl;
 
 		int* maxWidth = new int[this->noColumns];
+		int totalWidth = 0;
+
+		//maximum width for each column
 		for (int i = 0; i < this->noColumns; i++) {
-			maxWidth[i] = this->getColumn(i).getName().length();  //get length of each column to determine the max width
+			maxWidth[i] = this->getColumn(i).getName().length();  // get length of each column to determine the max width
 		}
 
 		for (int i = 0; i < this->noRows; i++) {
-			Row* row = this->rows[i];  //current row
+			Row* row = this->rows[i];  // current row
 			for (int j = 0; j < this->noColumns; j++) {
 				int currentLength = 0;
 				const Column& column = this->getColumn(j);
@@ -1159,14 +1191,28 @@ public:
 					currentLength = row->getTextData(j).length();
 				}
 				else if (column.getType() == FLOAT) {
-					currentLength = to_string(row->getFloatData(j)).length();
+					float value = row->getFloatData(j);
+					string floatStr = to_string(value);
+					size_t dotPos = floatStr.find('.');
+					if (dotPos != string::npos) {
+						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+					}
+					currentLength = floatStr.length();
 				}
 
 				if (currentLength > maxWidth[j]) {
-					maxWidth[j] = currentLength;  //update max width if needed(if data too big)
+					maxWidth[j] = currentLength;  // update max width if needed (if data too big)
 				}
 			}
 		}
+
+		//calculate the total width of the table
+		for (int i = 0; i < this->noColumns; i++) {
+			totalWidth += maxWidth[i] + 8;  // add 8 for padding between columns
+		}
+
+		//separator line
+		cout << string(totalWidth, '-') << endl;
 
 		//column names
 		for (int i = 0; i < this->noColumns; i++) {
@@ -1174,34 +1220,20 @@ public:
 			for (int j = 0; j < (maxWidth[i] - this->getColumn(i).getName().length()); j++) {
 				cout << " ";
 			}
-			cout << "\t\t";
+			cout << string(8, ' ');  // add 8 spaces between columns
 		}
-		cout << endl << "-------------------------------------------------------------" << endl;
+		cout << endl << string(totalWidth, '-') << endl;
 
 		//rows
 		for (int i = 0; i < this->noRows; i++) {
-			Row* row = this->rows[i];  //current row
+			Row* row = this->rows[i];  // current row
 			for (int j = 0; j < this->noColumns; j++) {
-				const Column& column = this->getColumn(j);  //column for current row
+				const Column& column = this->getColumn(j);  // column for current row
 
 				if (j > 0) {
-					cout << "\t\t";  //add tab before all but the first column
+					cout << string(8, ' ');  // add 8 spaces between columns
 				}
 
-				if (column.getType() == INT) {
-					cout << row->getIntData(j);
-				}
-				else if (column.getType() == TEXT) {
-					cout << row->getTextData(j);
-				}
-				else if (column.getType() == FLOAT) {
-					cout << row->getFloatData(j);
-				}
-				else {
-					cout << "N/A";  //for bool and date
-				}
-
-				//spaces to align with the max column width
 				string dataToString;
 				if (column.getType() == INT) {
 					dataToString = to_string(row->getIntData(j));
@@ -1210,15 +1242,30 @@ public:
 					dataToString = row->getTextData(j);
 				}
 				else if (column.getType() == FLOAT) {
-					dataToString = to_string(row->getFloatData(j));
+					float value = row->getFloatData(j);
+					string floatStr = to_string(value);
+					size_t dotPos = floatStr.find('.');
+					if (dotPos != string::npos) {
+						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+					}
+					dataToString = floatStr;
+				}
+				else {
+					dataToString = "N/A";  // for bool and date
 				}
 
+				cout << dataToString;
+
+				// spaces to align with the max column width
 				for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
 					cout << " ";
 				}
 			}
 			cout << endl;
 		}
+
+		//print the separator line at the end
+		cout << string(totalWidth, '-') << endl;
 
 		delete[] maxWidth;
 	}
@@ -1231,6 +1278,49 @@ private:
 
 	TableNames* tableNames = nullptr;
 	Index* indexes = nullptr;
+
+	bool isValidInt(const string& value) {
+		if (value.empty()) return false;
+		size_t i = 0;
+
+		//handle negative sign
+		if (value[0] == '-') {
+			if (value.length() == 1) return false; // "-" alone is not a valid integer
+			i++;
+		}
+
+		//check that all remaining characters are digits
+		for (; i < value.length(); i++) {
+			if (value[i] < '0' || value[i] > '9') {
+				return false; //non-digit character found
+			}
+		}
+
+		return true;
+	}
+	bool isValidFloat(const string& value) {
+		if (value.empty()) return false;
+		size_t i = 0;
+		bool decimalPointFound = false;
+
+		if (value[0] == '-') {
+			if (value.length() == 1) return false;
+			i++;
+		}
+
+		//iterate through the characters
+		for (; i < value.length(); i++) {
+			if (value[i] == '.') {
+				if (decimalPointFound) return false; //more than one decimal point
+				decimalPointFound = true;
+			}
+			else if (value[i] < '0' || value[i] > '9') {
+				return false; //non-digit character found
+			}
+		}
+
+		return true;
+	}
 public:
 	//DEFAULT CONSTRUCTOR
 	Database() {
@@ -1357,8 +1447,6 @@ public:
 
 		//add the row
 		table->addRow(values);
-
-		cout << endl << "Values inserted into table '" << name << "' successfully.";
 	}
 	void deleteRowFromTable(const string& name, const string& columnName, const string& value) {
 		if (!tableExists(name)) {
@@ -1477,12 +1565,60 @@ public:
 			conditionColumnIndex = table->getColumnIndex(conditionColumn);
 		}
 
-		cout << endl;
+		//calculate the maximum width for each column
+		int* maxWidth = new int[noColumns];
 		for (int i = 0; i < noColumns; i++) {
-			cout << columnNames[i] << "\t\t";
+			maxWidth[i] = columnNames[i].length();
 		}
-		cout << endl << "-------------------------------------------------------------" << endl;
 
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			for (int j = 0; j < noColumns; j++) {
+				int currentLength = 0;
+				const Column& column = table->getColumn(columnNames[j]);
+
+				if (column.getType() == INT) {
+					currentLength = to_string(row.getIntData(columnIndexes[j])).length();
+				}
+				else if (column.getType() == TEXT) {
+					currentLength = row.getTextData(columnIndexes[j]).length();
+				}
+				else if (column.getType() == FLOAT) {
+					float value = row.getFloatData(columnIndexes[j]);
+					string floatStr = to_string(value);
+					size_t dotPos = floatStr.find('.');
+					if (dotPos != string::npos) {
+						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+					}
+					currentLength = floatStr.length();
+				}
+
+				if (currentLength > maxWidth[j]) {
+					maxWidth[j] = currentLength;
+				}
+			}
+		}
+
+		//calculate the total width of the table
+		int totalWidth = 0;
+		for (int i = 0; i < noColumns; i++) {
+			totalWidth += maxWidth[i] + 8;  //add 8 for padding between columns
+		}
+
+		//print the separator line
+		cout << endl << string(totalWidth, '-') << endl;
+
+		//print column headers
+		for (int i = 0; i < noColumns; i++) {
+			cout << columnNames[i];
+			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
+				cout << " ";
+			}
+			cout << string(8, ' ');  // 8 spaces between columns
+		}
+		cout << endl << string(totalWidth, '-') << endl;
+
+		//print rows that match the condition
 		bool valueFound = false;
 		for (int i = 0; i < table->getNoRows(); i++) {
 			Row& row = table->getRow(i);
@@ -1512,19 +1648,31 @@ public:
 				valueFound = true;
 				for (int j = 0; j < noColumns; j++) {
 					const Column& column = table->getColumn(columnNames[j]);
-					switch (column.getType()) {
-					case INT:
-						cout << row.getIntData(columnIndexes[j]) << "\t\t";
-						break;
-					case TEXT:
-						cout << row.getTextData(columnIndexes[j]) << "\t\t";
-						break;
-					case FLOAT:
-						cout << row.getFloatData(columnIndexes[j]) << "\t\t";
-						break;
-					default:
-						cout << "N/A" << "\t\t";
+					string dataToString;
+					if (column.getType() == INT) {
+						dataToString = to_string(row.getIntData(columnIndexes[j]));
 					}
+					else if (column.getType() == TEXT) {
+						dataToString = row.getTextData(columnIndexes[j]);
+					}
+					else if (column.getType() == FLOAT) {
+						float value = row.getFloatData(columnIndexes[j]);
+						string floatStr = to_string(value);
+						size_t dotPos = floatStr.find('.');
+						if (dotPos != string::npos) {
+							floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+						}
+						dataToString = floatStr;
+					}
+					else {
+						dataToString = "N/A";  //BOOLEAN and DATE
+					}
+
+					cout << dataToString;
+					for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
+						cout << " ";
+					}
+					cout << string(8, ' ');  //8 spaces between columns
 				}
 				cout << endl;
 			}
@@ -1534,7 +1682,11 @@ public:
 			cout << "No rows found with " << conditionColumn << " = " << value << endl;
 		}
 
+		//print the separator line at the end
+		cout << string(totalWidth, '-') << endl;
+
 		delete[] columnIndexes;
+		delete[] maxWidth;
 	}
 	void selectColumns(const string& tableName, const string* columnNames, int noColumns) {
 		if (!tableExists(tableName)) {
@@ -1549,7 +1701,7 @@ public:
 
 		//check if all specified columns exist in the table
 		for (int i = 0; i < noColumns; i++) {
-			if (indexes->indexExists(columnNames[i], tableName)) {        //if they have an index i use the functions which search by index
+			if (indexes->indexExists(columnNames[i], tableName)) {
 				columnIndexes[i] = indexes->getIndexValue(columnNames[i], tableName);
 				if (!table->columnExistsByIndex(columnIndexes[i])) {
 					cout << endl << "Error: Column with index '" << columnIndexes[i] << "' does not exist in table '" << tableName << "'.";
@@ -1567,34 +1719,98 @@ public:
 			}
 		}
 
-		cout << endl;
+		//calculate the maximum width for each column
+		int* maxWidth = new int[noColumns];
 		for (int i = 0; i < noColumns; i++) {
-			cout << columnNames[i] << "\t\t";
+			maxWidth[i] = columnNames[i].length();
 		}
-		cout << endl << "-------------------------------------------------------------" << endl;
 
 		for (int i = 0; i < table->getNoRows(); i++) {
 			Row& row = table->getRow(i);
 			for (int j = 0; j < noColumns; j++) {
+				int currentLength = 0;
 				const Column& column = table->getColumn(columnNames[j]);
-				switch (column.getType()) {
-				case INT:
-					cout << row.getIntData(columnIndexes[j]) << "\t\t";
-					break;
-				case TEXT:
-					cout << row.getTextData(columnIndexes[j]) << "\t\t";
-					break;
-				case FLOAT:
-					cout << row.getFloatData(columnIndexes[j]) << "\t\t";
-					break;
-				default:
-					cout << "N/A" << "\t\t";
+
+				if (column.getType() == INT) {
+					currentLength = to_string(row.getIntData(columnIndexes[j])).length();
 				}
+				else if (column.getType() == TEXT) {
+					currentLength = row.getTextData(columnIndexes[j]).length();
+				}
+				else if (column.getType() == FLOAT) {
+					float value = row.getFloatData(columnIndexes[j]);
+					string floatStr = to_string(value);
+					size_t dotPos = floatStr.find('.');
+					if (dotPos != string::npos) {
+						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+					}
+					currentLength = floatStr.length();
+				}
+
+				if (currentLength > maxWidth[j]) {
+					maxWidth[j] = currentLength;
+				}
+			}
+		}
+
+		//calculate the total width of the table
+		int totalWidth = 0;
+		for (int i = 0; i < noColumns; i++) {
+			totalWidth += maxWidth[i] + 8;  // add 8 for padding between columns
+		}
+
+		//print the separator line
+		cout << endl << string(totalWidth, '-') << endl;
+
+		//print column headers
+		for (int i = 0; i < noColumns; i++) {
+			cout << columnNames[i];
+			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
+				cout << " ";
+			}
+			cout << string(8, ' ');  // add 8 spaces between columns
+		}
+		cout << endl << string(totalWidth, '-') << endl;
+
+		//rows
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			for (int j = 0; j < noColumns; j++) {
+				const Column& column = table->getColumn(columnNames[j]);
+				string dataToString;
+				if (column.getType() == INT) {
+					dataToString = to_string(row.getIntData(columnIndexes[j]));
+				}
+				else if (column.getType() == TEXT) {
+					dataToString = row.getTextData(columnIndexes[j]);
+				}
+				else if (column.getType() == FLOAT) {
+					float value = row.getFloatData(columnIndexes[j]);
+					string floatStr = to_string(value);
+					size_t dotPos = floatStr.find('.');
+					if (dotPos != string::npos) {
+						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+					}
+					dataToString = floatStr;
+				}
+				else {
+					dataToString = "N/A";  //for BOOLEAN and DATE
+				}
+
+				cout << dataToString;
+				for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
+					cout << " ";
+				}
+				cout << string(8, ' ');  //add 8 spaces between columns
 			}
 			cout << endl;
 		}
 
+		//print the separator line at the end
+		cout << string(totalWidth, '-') << endl;
+
 		delete[] columnIndexes;
+		delete[] maxWidth;
 	}
 	void updateTable(const string& tableName, const string& setColumnName, const string& setValue, const string& whereColumnName, const string& whereValue) {
 		if (!tableExists(tableName)) {
@@ -1639,6 +1855,44 @@ public:
 				return;
 			}
 			whereColumnIndex = table->getColumnIndex(whereColumnName);
+		}
+
+		//check if the set value corresponds with the column type and does not exceed the maximum size
+		ColumnType setColumnType = table->getColumnType(setColumnIndex);
+		int setColumnSize = table->getColumnSize(setColumnIndex);
+
+		try {
+			switch (setColumnType) {
+			case INT: {
+				if (!isValidInt(setValue)) {
+					throw invalid_argument("Set value must be a valid integer.");
+				}
+				if (setValue.size() > setColumnSize) {
+					throw invalid_argument("Set value exceeds the maximum size for the integer column.");
+				}
+				break;
+			}
+			case FLOAT: {
+				if (!isValidFloat(setValue)) {
+					throw invalid_argument("Set value must be a valid float.");
+				}
+				if (setValue.size() > setColumnSize) {
+					throw invalid_argument("Set value exceeds the maximum size for the float column.");
+				}
+				break;
+			}
+			case TEXT:
+				if (setValue.size() > setColumnSize) {
+					throw invalid_argument("Set value exceeds the maximum size for the text column.");
+				}
+				break;
+			default:
+				throw invalid_argument("Unsupported column type.");
+			}
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << "Error: " << e.what();
+			return;
 		}
 
 		//update rows
@@ -1741,7 +1995,7 @@ public:
 		string tableName = indexes->getIndexTableName(indexName);
 		string columnName = indexes->getIndexColumnName(indexName);
 
-		cout << endl << "Index '" << indexName << "' removed from table '" << tableName << "' on column '" << columnName << "'." << endl;
+		cout << endl << "Index '" << indexName << "' removed from table '" << tableName << "' on column '" << columnName << "'.";
 		indexes->removeIndexByIndexName(indexName);
 	}
 	void showTables() const {
@@ -1882,20 +2136,12 @@ public:
 		std::cout << "    - Exits the program.\n";
 		std::cout << "================================================================\n";
 	}
-	//--------------------------------------------------
 };
 
 class Commands {
 private:
 	Database* db = nullptr;
-public:
-	//DEFAULT CONSTRUCTOR
-	Commands() {
-		this->db = nullptr;
-	}
-	//CONSTRUCTOR only this will be public later
-	Commands(Database* database) : db(database) {}
-	//HELPER FUNCTIONS
+	//HELPER FUNCTIONS----------------------------------
 	ColumnType parseColumnType(const string& type) {
 		//convert string to ColumnType for the column constructor
 		if (type == "INT") return INT;
@@ -1910,7 +2156,9 @@ public:
 		if (unique == "UNIQUE") return true;
 		return false;
 	}
-	//--------------------------------------------------
+	bool containsWord(const string& command, const string& word) {
+		return command.find(word) != string::npos; //if not equak to "not found" then return true
+	}
 	void trim(string& str) {
 		//find the first non-space character
 		size_t start = str.find_first_not_of(" ");
@@ -1958,7 +2206,7 @@ public:
 			tokens[i] = commandCopy;
 		}
 	}
-public:
+private:
 	//every command is in a try block to avoid crashing the program and printing error messages instead
 	void stringCommandSelectAll(const string& command) {
 		try {
@@ -2028,8 +2276,15 @@ public:
 			string tableName = commandCopy.substr(13, pos - 13);  // 13 is the length of "CREATE TABLE "
 			trim(tableName);
 
+			//check if the table name is empty
 			if (tableName.empty()) {
 				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//check if the table name contains spaces
+			if (tableName.find(' ') != string::npos) {
+				cout << endl << "Invalid command format. Table name cannot contain spaces.";
 				return;
 			}
 
@@ -2049,15 +2304,46 @@ public:
 				return;
 			}
 
-			//split the columns part into individual columns
-			string* columns = nullptr;
+			//count the number of columns
 			int noColumns = 0;
-			splitCommand(columnsPart, "), (", columns, noColumns);
+			size_t start = 0;
+			size_t end = 0;
+			while ((end = columnsPart.find("),", start)) != string::npos) {
+				noColumns++;
+				start = end + 2;
+				while (start < columnsPart.length() && isspace(columnsPart[start])) {
+					start++;
+				}
+				if (start < columnsPart.length() && columnsPart[start] == '(') {
+					start++;
+				}
+			}
+			noColumns++; //increment for the last column
 
 			if (noColumns == 0) {
 				cout << endl << "Invalid command format. No columns specified.";
 				return;
 			}
+
+			//split the columns part into individual columns
+			string* columns = new string[noColumns];
+			start = 0;
+			int colIndex = 0;
+			while ((end = columnsPart.find("),", start)) != string::npos) {
+				string column = columnsPart.substr(start, end - start + 1);
+				trim(column);
+				columns[colIndex++] = column;
+				start = end + 2;
+				while (start < columnsPart.length() && isspace(columnsPart[start])) {
+					start++;
+				}
+				if (start < columnsPart.length() && columnsPart[start] == '(') {
+					start++;
+				}
+			}
+			string lastColumn = columnsPart.substr(start);
+			trim(lastColumn);
+			columns[colIndex] = lastColumn;
 
 			Column* tableColumns = new Column[noColumns];
 			for (int i = 0; i < noColumns; i++) {
@@ -2065,8 +2351,8 @@ public:
 				trim(column);
 
 				//remove leading and trailing parentheses
-				if (column.front() == '(') column.erase(0, 1);
-				if (column.back() == ')') column.pop_back();
+				if (!column.empty() && column.front() == '(') column.erase(0, 1);
+				if (!column.empty() && column.back() == ')') column.pop_back();
 
 				//split the column into individual parts
 				string* columnParts = nullptr;
@@ -2109,7 +2395,7 @@ public:
 					return;
 				}
 
-				//get column size
+				//size
 				string columnSize = columnParts[2];
 				trim(columnSize);
 
@@ -2121,7 +2407,7 @@ public:
 					return;
 				}
 
-				//get column default value
+				//default value
 				string columnDefaultValue = columnParts[3];
 				trim(columnDefaultValue);
 
@@ -3012,6 +3298,40 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandClearConsole(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command is "clear"
+			if (commandCopy != "clear") {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			system("cls");
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandExitProgram(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command is "exit"
+			if (commandCopy != "exit") {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			exit(0);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 	void stringCommandHelpMenu(const string& command) {
 		try {
 			string commandCopy = command;
@@ -3047,93 +3367,95 @@ public:
 			cout << endl << e.what();
 		}
 	}
-	void stringCommandClearConsole(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command is "clear"
-			if (commandCopy != "clear") {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			system("cls");
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
+public:
+	//DEFAULT CONSTRUCTOR
+	Commands() {
+		this->db = nullptr;
 	}
-	void stringCommandExitProgram(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command is "exit"
-			if (commandCopy != "exit") {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			exit(0);
+	//CONSTRUCTOR
+	Commands(Database* database) : db(database) {}
+	//--------------------------------------------------
+	void handleCommand(const string& command) {
+		//detect and handle the command accordingly
+		if (containsWord(command, "CREATE") && containsWord(command, "TABLE")) {
+			stringCommandCreateTable(command);
 		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
+		else if (containsWord(command, "DESCRIBE")) {
+			stringCommandDescribe(command);
+		}
+		else if (containsWord(command, "DROP") && containsWord(command, "TABLE")) {
+			stringCommandDropTable(command);
+		}
+		else if (containsWord(command, "SELECT") && containsWord(command, "ALL")) {
+			stringCommandSelectAll(command);
+		}
+		else if (containsWord(command, "INSERT") && containsWord(command, "INTO") && containsWord(command, "VALUES")) {
+			stringCommandinsertIntoValues(command);
+		}
+		else if (containsWord(command, "DELETE") && containsWord(command, "FROM") && containsWord(command, "WHERE")) {
+			stringCommandDeleteFromWhere(command);
+		}
+		else if (containsWord(command, "SELECT") && containsWord(command, "WHERE")) {
+			stringCommandSelectWhere(command);
+		}
+		else if (containsWord(command, "SELECT") && !containsWord(command, "ALL") && !containsWord(command, "WHERE")) {
+			stringCommandSelectColumns(command);
+		}
+		else if (containsWord(command, "UPDATE") && containsWord(command, "SET") && containsWord(command, "WHERE")) {
+			stringCommandUpdateTable(command);
+		}
+		else if (containsWord(command, "ALTER") && containsWord(command, "TABLE") && containsWord(command, "ADD")) {
+			stringCommandAlterTableAddColumn(command);
+		}
+		else if (containsWord(command, "ALTER") && containsWord(command, "TABLE") && containsWord(command, "DROP") && containsWord(command, "COLUMN")) {
+			stringCommandAlterTableDropColumn(command);
+		}
+		else if (containsWord(command, "CREATE") && containsWord(command, "INDEX")) {
+			stringCommandCreateIndex(command);
+		}
+		else if (containsWord(command, "DROP") && containsWord(command, "INDEX")) {
+			stringCommandDropIndex(command);
+		}
+		else if (containsWord(command, "SHOW") && containsWord(command, "TABLES")) {
+			stringCommandShowTables(command);
+		}
+		else if (containsWord(command, "SHOW") && containsWord(command, "INDEX") && containsWord(command, "FROM") && !containsWord(command, "ALL")) {
+			stringCommandShowIndexFromTable(command);
+		}
+		else if (containsWord(command, "SHOW") && containsWord(command, "INDEX") && containsWord(command, "FROM") && containsWord(command, "ALL")) {
+			stringCommandShowIndexFromAll(command);
+		}
+		else if (containsWord(command, "clear")) {
+			stringCommandClearConsole(command);
+		}
+		else if (containsWord(command, "exit")) {
+			stringCommandExitProgram(command);
+		}
+		else if (containsWord(command, "help") && !containsWord(command, "2")) {
+			stringCommandHelpMenu(command);
+		}
+		else if (containsWord(command, "help") && containsWord(command, "2")) {
+			stringCommandSyntaxMenu(command);
+		}
+		else {
+			cout << "Unknown command." << endl;
 		}
 	}
 };
 
-//HANDLE ERRORS IN EACH FUNCTION
-
 int main() {
-	//fix display later
 	Database db;
 	Commands commands(&db);
+	string command;
 
-	//db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0,1", true), Column("Name", TEXT, 20, ""), Column("Price", FLOAT, 10, "0.0.0.0") }, 3);
-	//db.createTable("Products", new Column[3]{ Column("ID", INT, 5, "0", true), Column("Name", TEXT, 20, ""), Column("Price", FLOAT, 10, "0.0f") }, 3);
-	//db.createIndex("IDIndex", "Name", "Products");
-	//db.dropIndex("NameIndex");
-	//db.insertIntoTable("Products", new string[3]{ "1", "Laptop", "999.99" }, 3);
-	//db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3);
-	//db.insertIntoTable("Products", new string[3]{ "2", "Mouse", "129.99" }, 3); //error because not unique id
-	//db.insertIntoTable("Products", new string[3]{ "2", "Mouseddddddddddddddddddd", "129.99" }, 3); //error because name too long
-	//db.deleteColumnFromTable("Products", "Price");
-	//db.selectALL("Products");
-	//db.describeTable("Products");
-	//db.selectWHERE("Products", "Name");
-	//db.updateTable("Products", "Name", "test", "Name", "Laptop");
-	//db.alterTableAddColumn("Products", Column("Stock", INT, 5, "0"));
-	//db.selectALL("Products");
-	//db.selectColumns("Products", new string[2]{ "ID", "Name" }, 2);
-	//db.dropTable("Products");
+	cout << "Use the 'help' command to view available commands and their syntax.";
 
-	string create = "CREATE TABLE Products ((ID, INT, 5, 123, UNIQUE), (Name, TEXT, 20, unknown), (Price, FLOAT, 10, 0.0))";
-	commands.stringCommandCreateTable(create);
+	while (true) {
+		cout << endl << ">> ";
+		getline(cin, command);
 
-	string insert = "INSERT INTO Products VALUES (123, Laptop, 0.0)";
-	commands.stringCommandinsertIntoValues(insert);
-
-	string insert2 = "INSERT INTO Products VALUES (124, Car,0.2)";
-	commands.stringCommandinsertIntoValues(insert2);
-
-	string deleteFrom = "DELETE FROM Products WHERE ID = 123";
-	commands.stringCommandDeleteFromWhere(deleteFrom);
-
-	string select = "SELECT ALL FROM Products";
-	commands.stringCommandSelectAll(select);
-
-	string describe = "DESCRIBE Products";
-	commands.stringCommandDescribe(describe);
-
-	string selectColumns = "SELECT ID,Name, Price FROM Products";
-	commands.stringCommandSelectColumns(selectColumns);
-
-	string selectWhere = "SELECT ID, Name FROM Products WHERE Price = 0.2";
-	commands.stringCommandSelectWhere(selectWhere);
-
-	string drop = "DROP TABLE Products";
-	commands.stringCommandDropTable(drop);
+		commands.handleCommand(command);
+	}
 
 	return 0;
 }
