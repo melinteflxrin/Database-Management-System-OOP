@@ -2945,6 +2945,73 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandShowTables(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command is "SHOW TABLES"
+			if (commandCopy != "SHOW TABLES") {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			db->showTables();
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandShowIndexFromTable(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "SHOW INDEX FROM "
+			if (commandCopy.find("SHOW INDEX FROM ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//extract the table name
+			string tableName = commandCopy.substr(16);  // 16 is the length of "SHOW INDEX FROM "
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//check for extra arguments
+			size_t extraArgsPos = tableName.find(' ');
+			if (extraArgsPos != string::npos) {
+				cout << endl << "Invalid command format. Too many arguments.";
+				return;
+			}
+
+			db->showIndexFromTable(tableName);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandShowIndexFromAll(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command is "SHOW INDEX FROM ALL"
+			if (commandCopy != "SHOW INDEX FROM ALL") {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			db->showIndexFromAll();
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
