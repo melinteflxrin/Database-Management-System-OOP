@@ -2239,6 +2239,97 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandSelectColumns(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "SELECT "
+			if (commandCopy.find("SELECT ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of "FROM "
+			size_t pos = commandCopy.find("FROM ");
+			if (pos == string::npos) {
+				cout << endl << "Invalid command format. Missing 'FROM'.";
+				return;
+			}
+
+			//make sure there is a space before "FROM "
+			if (commandCopy[pos - 1] != ' ') {
+				cout << endl << "Invalid command format. Missing space before 'FROM'.";
+				return;
+			}
+
+			//get the columns part
+			string columnsPart = commandCopy.substr(7, pos - 8);  // 7 is the length of "SELECT " with a space
+			trim(columnsPart);
+
+			if (columnsPart.empty()) {
+				cout << endl << "Invalid command format. Columns cannot be empty.";
+				return;
+			}
+
+			//count the number of columns
+			int noColumns = 1;
+			for (char c : columnsPart) {
+				if (c == ',') {
+					noColumns++;
+				}
+			}
+
+			//split the columns part into individual columns
+			string* columns = new string[noColumns];
+			size_t start = 0;
+			size_t end = columnsPart.find(',');
+			int index = 0;
+
+			while (end != string::npos) {
+				columns[index] = columnsPart.substr(start, end - start);
+				trim(columns[index]);
+				start = end + 1;
+				end = columnsPart.find(',', start);
+				index++;
+			}
+
+			//add the last column
+			columns[index] = columnsPart.substr(start);
+			trim(columns[index]);
+
+			if (noColumns == 0) {
+				cout << endl << "Invalid command format. No columns specified.";
+				delete[] columns;
+				return;
+			}
+
+			//get the table name
+			string tableName = commandCopy.substr(pos + 5);  // 5 is the length of "FROM " with a space
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				delete[] columns;
+				return;
+			}
+
+			//check for extra arguments
+			size_t extraArgsPos = tableName.find(' ');
+			if (extraArgsPos != string::npos) {
+				cout << endl << "Invalid command format. Too many arguments.";
+				delete[] columns;
+				return;
+			}
+
+			db->selectColumns(tableName, columns, noColumns);
+
+			delete[] columns;
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
