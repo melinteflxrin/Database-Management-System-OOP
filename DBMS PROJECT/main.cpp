@@ -2791,6 +2791,48 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandAlterTableDropColumn(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "ALTER TABLE "
+			if (commandCopy.find("ALTER TABLE ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of " DROP COLUMN "
+			size_t dropPos = commandCopy.find(" DROP COLUMN ");
+			if (dropPos == string::npos) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//extract the table name
+			string tableName = commandCopy.substr(12, dropPos - 12);  // 12 is the length of "ALTER TABLE "
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//extract the column name
+			string columnName = commandCopy.substr(dropPos + 13);  // 13 is the length of " DROP COLUMN "
+			trim(columnName);
+
+			if (columnName.empty()) {
+				cout << endl << "Invalid command format. Column name cannot be empty.";
+				return;
+			}
+
+			db->alterTableDeleteColumn(tableName, columnName);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
