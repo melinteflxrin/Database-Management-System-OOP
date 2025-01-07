@@ -2688,6 +2688,109 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandAlterTableAddColumn(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "ALTER TABLE "
+			if (commandCopy.find("ALTER TABLE ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of " ADD "
+			size_t addPos = commandCopy.find(" ADD ");
+			if (addPos == string::npos) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//check for '(' after " ADD "
+			size_t openParenPos = commandCopy.find("(", addPos);
+			if (openParenPos == string::npos) {
+				cout << endl << "Invalid command format. Missing '('.";
+				return;
+			}
+
+			//extract the table name
+			string tableName = commandCopy.substr(12, addPos - 12);  // 12 is the length of "ALTER TABLE "
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//extract the column definition part
+			string columnDef = commandCopy.substr(openParenPos + 1);  // 1 is the length of "("
+			if (columnDef.back() != ')') {
+				cout << endl << "Invalid command format. Missing ')'.";
+				return;
+			}
+			columnDef.pop_back();  //remove the closing parenthesis
+			trim(columnDef);
+
+			//split the column definition into parts
+			string columnParts[4];
+			int partIndex = 0;
+			size_t start = 0;
+			size_t end = columnDef.find(',');
+
+			while (end != string::npos && partIndex < 4) {
+				columnParts[partIndex++] = columnDef.substr(start, end - start);
+				start = end + 1;
+				end = columnDef.find(',', start);
+			}
+			if (partIndex < 4) {
+				columnParts[partIndex++] = columnDef.substr(start);
+			}
+
+			if (partIndex != 4) {
+				cout << endl << "Invalid command format. Column definition must have 4 parameters.";
+				return;
+			}
+
+			//trim each part
+			for (int i = 0; i < 4; i++) {
+				trim(columnParts[i]);
+			}
+
+			//extract column details
+			string columnName = columnParts[0];
+			string columnTypeStr = columnParts[1];
+			int columnSize = stoi(columnParts[2]);
+			string defaultValue = columnParts[3];
+
+			ColumnType columnType;
+			if (columnTypeStr == "INT") {
+				columnType = INT;
+			}
+			else if (columnTypeStr == "TEXT") {
+				columnType = TEXT;
+			}
+			else if (columnTypeStr == "FLOAT") {
+				columnType = FLOAT;
+			}
+			else if (columnTypeStr == "BOOLEAN") {
+				columnType = BOOLEAN;
+			}
+			else if (columnTypeStr == "DATE") {
+				columnType = DATE;
+			}
+			else {
+				cout << endl << "Invalid column type.";
+				return;
+			}
+
+			Column newColumn(columnName, columnType, columnSize, defaultValue);
+
+			db->alterTableAddColumn(tableName, newColumn);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
