@@ -1725,6 +1725,17 @@ public:
 		cout << endl << "Index '" << indexName << "' removed from table '" << tableName << "' on column '" << columnName << "'." << endl;
 		indexes->removeIndexByIndexName(indexName);
 	}
+	void showTables() const {
+		if (noTables == 0) {
+			cout << endl << "No tables found.";
+			return;
+		}
+
+		cout << endl << "My Tables:";
+		for (int i = 0; i < noTables; i++) {
+			cout << endl << i + 1 << ". " << database[i]->getName();
+		}
+	}
 	//--------------------------------------------------
 };
 
