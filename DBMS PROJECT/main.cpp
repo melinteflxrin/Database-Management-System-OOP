@@ -2833,6 +2833,118 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandCreateIndex(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "CREATE INDEX "
+			if (commandCopy.find("CREATE INDEX ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of " ON "
+			size_t onPos = commandCopy.find(" ON ");
+			if (onPos == string::npos) {
+				cout << endl << "Invalid command format. Missing 'ON'.";
+				return;
+			}
+
+			//extract the index name
+			string indexName = commandCopy.substr(13, onPos - 13);  // 13 is the length of "CREATE INDEX "
+			trim(indexName);
+
+			if (indexName.empty()) {
+				cout << endl << "Invalid command format. Index name cannot be empty.";
+				return;
+			}
+
+			//extract the table name and column part
+			string tableAndColumnPart = commandCopy.substr(onPos + 4);  // 4 is the length of " ON "
+			trim(tableAndColumnPart);
+
+			//find the position of the opening parenthesis '('
+			size_t openParenPos = tableAndColumnPart.find('(');
+			if (openParenPos == string::npos) {
+				cout << endl << "Invalid command format. Missing '('.";
+				return;
+			}
+
+			//extract the table name
+			string tableName = tableAndColumnPart.substr(0, openParenPos);
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//find the position of the closing parenthesis ')'
+			size_t closeParenPos = tableAndColumnPart.find(')', openParenPos);
+			if (closeParenPos == string::npos) {
+				cout << endl << "Invalid command format. Missing closing parenthesis.";
+				return;
+			}
+
+			//extract the column name
+			string columnName = tableAndColumnPart.substr(openParenPos + 1, closeParenPos - openParenPos - 1);
+			trim(columnName);
+
+			if (columnName.empty()) {
+				cout << endl << "Invalid command format. Column name cannot be empty.";
+				return;
+			}
+
+			//check for extra arguments after the closing parenthesis
+			if (closeParenPos + 1 < tableAndColumnPart.length()) {
+				string extraArgs = tableAndColumnPart.substr(closeParenPos + 1);
+				trim(extraArgs);
+				if (!extraArgs.empty()) {
+					cout << endl << "Invalid command format. Too many arguments.";
+					return;
+				}
+			}
+
+			db->createIndex(indexName, columnName, tableName);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandDropIndex(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "DROP INDEX "
+			if (commandCopy.find("DROP INDEX ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//extract the index name
+			string indexName = commandCopy.substr(11);  // 11 is the length of "DROP INDEX "
+			trim(indexName);
+
+			if (indexName.empty()) {
+				cout << endl << "Invalid command format. Index name cannot be empty.";
+				return;
+			}
+
+			//check for extra arguments
+			size_t extraArgsPos = indexName.find(' ');
+			if (extraArgsPos != string::npos) {
+				cout << endl << "Invalid command format. Too many arguments.";
+				return;
+			}
+
+			db->dropIndex(indexName);
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
