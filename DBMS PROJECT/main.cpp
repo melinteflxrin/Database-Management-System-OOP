@@ -1768,6 +1768,120 @@ public:
 		cout << endl << "My Indexes:";
 		indexes->showAllIndexes();
 	}
+	void printHelpMenu() {
+		string commands[] = {
+			"CREATE TABLE",
+			"DESCRIBE TABLE",
+			"DROP TABLE",
+			"SELECT ALL",
+			"INSERT INTO VALUES",
+			"DELETE FROM WHERE",
+			"SELECT WHERE",
+			"SELECT",
+			"UPDATE TABLE",
+			"ALTER TABLE ADD COLUMN",
+			"ALTER TABLE DROP COLUMN",
+			"CREATE INDEX",
+			"DROP INDEX",
+			"SHOW TABLES",
+			"SHOW INDEX FROM",
+			"SHOW INDEX FROM ALL",
+			"CLEAR",
+			"EXIT"
+		};
+
+		string descriptions[] = {
+			" Create a new table with specified columns and constraints.",
+			" Show the structure of an existing table.",
+			" Delete an existing table from the database.",
+			" Select all rows from a table.",
+			" Insert a new row into a table.",
+			" Delete rows from a table based on a condition.",
+			" Select specific columns from a table based on a condition.",
+			" Select specific columns from a table without conditions.",
+			" Update existing rows in a table based on a condition.",
+			"Add a new column to an existing table.",
+			"Drop an existing column from a table.",
+			"Create an index on a specified column of a table.",
+			"Drop an existing index from a table.",
+			"Show all the tables in the database.",
+			"Show indexes associated with a specific table.",
+			"Show all indexes in the database.",
+			"Clear the console screen.",
+			"Exit the program."
+		};
+
+		cout << "Available Commands:\n";
+		cout << "----------------------------------\n";
+
+		for (int i = 0; i < 18; ++i) {
+			cout << i + 1 << ". " << commands[i];
+			int spaces = 30 - commands[i].length();
+			for (int j = 0; j < spaces; ++j) {
+				cout << " "; // fill the space to align descriptions
+			}
+			cout << descriptions[i] << "\n\n";
+		}
+
+		cout << "Type 'help 2' to see each command's syntax.\n";
+	}
+	void printSyntaxMenu() {
+		std::cout << "========================== HELP MENU ==========================\n";
+		std::cout << "1. CREATE TABLE table_name (column_name, column_type, size, default_value)\n";
+		std::cout << "   - Creates a new table with the specified columns.\n";
+		std::cout << "\n";
+		std::cout << "2. DESCRIBE table_name\n";
+		std::cout << "   - Displays the structure of the specified table.\n";
+		std::cout << "\n";
+		std::cout << "3. DROP TABLE table_name\n";
+		std::cout << "   - Deletes the specified table.\n";
+		std::cout << "\n";
+		std::cout << "4. SELECT ALL FROM table_name\n";
+		std::cout << "   - Retrieves all rows from the specified table.\n";
+		std::cout << "\n";
+		std::cout << "5. INSERT INTO table_name VALUES (value1, value2, ...)\n";
+		std::cout << "   - Inserts new values into the specified table.\n";
+		std::cout << "\n";
+		std::cout << "6. DELETE FROM table_name WHERE condition\n";
+		std::cout << "   - Deletes rows from the table matching the condition.\n";
+		std::cout << "\n";
+		std::cout << "7. SELECT column1, column2, ... FROM table_name WHERE condition\n";
+		std::cout << "   - Retrieves specific columns from the table based on the condition.\n";
+		std::cout << "\n";
+		std::cout << "8. SELECT column1, column2, ... FROM table_name\n";
+		std::cout << "   - Retrieves specific columns from the table.\n";
+		std::cout << "\n";
+		std::cout << "9. UPDATE table_name SET column1 = value1, column2 = value2, ... WHERE condition\n";
+		std::cout << "   - Updates rows in the table that match the condition.\n";
+		std::cout << "\n";
+		std::cout << "10. ALTER TABLE table_name ADD (column_name, column_type, size, default_value)\n";
+		std::cout << "    - Adds a new column to the specified table.\n";
+		std::cout << "\n";
+		std::cout << "11. ALTER TABLE table_name DROP COLUMN column_name\n";
+		std::cout << "    - Removes a column from the specified table.\n";
+		std::cout << "\n";
+		std::cout << "12. CREATE INDEX index_name ON table_name (column_name)\n";
+		std::cout << "    - Creates an index on the specified column in the table.\n";
+		std::cout << "\n";
+		std::cout << "13. DROP INDEX index_name\n";
+		std::cout << "    - Deletes the specified index.\n";
+		std::cout << "\n";
+		std::cout << "14. SHOW TABLES\n";
+		std::cout << "    - Lists all the tables in the database.\n";
+		std::cout << "\n";
+		std::cout << "15. SHOW INDEX FROM table_name\n";
+		std::cout << "    - Displays all indices on the specified table.\n";
+		std::cout << "\n";
+		std::cout << "16. SHOW INDEX FROM ALL\n";
+		std::cout << "    - Displays all indices across all tables.\n";
+		std::cout << "\n";
+		std::cout << "17. clear\n";
+		std::cout << "    - Clears the console screen.\n";
+		std::cout << "\n";
+		std::cout << "18. exit\n";
+		std::cout << "    - Exits the program.\n";
+		std::cout << "================================================================\n";
+	}
 	//--------------------------------------------------
 };
 
