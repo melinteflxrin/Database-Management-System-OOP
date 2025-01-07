@@ -2158,6 +2158,87 @@ public:
 			cout << endl << e.what();
 		}
 	}
+	void stringCommandDeleteFromWhere(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "DELETE FROM "
+			if (commandCopy.find("DELETE FROM ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			//find the position of "WHERE "
+			size_t pos = commandCopy.find("WHERE ");
+			if (pos == string::npos) {
+				cout << endl << "Invalid command format. Missing 'WHERE'.";
+				return;
+			}
+
+			//make sure there is a space before "WHERE "
+			if (commandCopy[pos - 1] != ' ') {
+				cout << endl << "Invalid command format. Missing space before 'WHERE'.";
+				return;
+			}
+
+			//get the table name
+			string tableName = commandCopy.substr(12, pos - 13);  // 12 is the length of "DELETE FROM " with a space
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			//get the where part
+			string wherePart = commandCopy.substr(pos + 6);  // 6 is the length of "WHERE " with a space
+			trim(wherePart);
+
+			if (wherePart.empty()) {
+				cout << endl << "Invalid command format. Where part cannot be empty.";
+				return;
+			}
+
+			//split the where part into individual parts
+			string* whereParts = nullptr;
+			int noParts = 0;
+			splitCommand(wherePart, "=", whereParts, noParts);
+
+			if (noParts != 2) {
+				cout << endl << "Invalid command format. Invalid where part.";
+				delete[] whereParts;
+				return;
+			}
+
+			//get the column name
+			string columnName = whereParts[0];
+			trim(columnName);
+
+			if (columnName.empty()) {
+				cout << endl << "Invalid command format. Column name cannot be empty.";
+				delete[] whereParts;
+				return;
+			}
+
+			//get the value
+			string value = whereParts[1];
+			trim(value);
+
+			if (value.empty()) {
+				cout << endl << "Invalid command format. Value cannot be empty.";
+				delete[] whereParts;
+				return;
+			}
+
+			db->deleteRowFromTable(tableName, columnName, value);
+
+			delete[] whereParts;
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
 };
 
 //HANDLE ERRORS IN EACH FUNCTION
