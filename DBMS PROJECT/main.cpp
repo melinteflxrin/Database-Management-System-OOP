@@ -725,21 +725,6 @@ public:
 		delete indexes;
 	}
 	//GETTERS
-	int getNoTables() const {
-		return this->noTables;
-	}
-	Table** getAllTables() const {
-		if (this->database == nullptr || this->noTables == 0) {
-			return nullptr;
-		}
-
-		Table** copyDatabase = new Table * [this->noTables];
-		for (int i = 0; i < this->noTables; i++) {
-			copyDatabase[i] = new Table(*this->database[i]); //use the copy constructor to create a deep copy
-		}
-
-		return copyDatabase;
-	}
 	int getTableIndex(const string& name) const {
 		for (int i = 0; i < noTables; i++) {
 			if (database[i]->getName() == name) {
@@ -1763,6 +1748,147 @@ public:
 		std::cout << "18. exit\n";
 		std::cout << "    - Exits the program.\n";
 		std::cout << "================================================================\n";
+	}
+	//--------------------------------------------------
+	void saveDatabase(const string& tablesConfigAddress) const {
+		for (int i = 0; i < noTables; i++) {
+			const Table& table = *database[i];
+			string filename = tablesConfigAddress + table.getName() + ".bin";
+			ofstream outFile(filename, ios::binary);
+			if (!outFile) {
+				cout << endl << "Error: Could not create file " << filename;
+				continue;
+			}
+
+			//write the table structure to the file
+			int nameLength = table.getName().length();
+			outFile.write(reinterpret_cast<const char*>(&nameLength), sizeof(nameLength));
+			outFile.write(table.getName().c_str(), nameLength);
+
+			int noColumns = table.getNoColumns();
+			outFile.write(reinterpret_cast<const char*>(&noColumns), sizeof(noColumns));
+			for (int j = 0; j < noColumns; ++j) {
+				const Column& column = table.getColumn(j);
+				const string& columnName = column.getName();
+				int columnNameLength = columnName.length();
+				outFile.write(reinterpret_cast<const char*>(&columnNameLength), sizeof(columnNameLength));
+				outFile.write(columnName.c_str(), columnNameLength);
+
+				ColumnType columnType = column.getType();
+				outFile.write(reinterpret_cast<const char*>(&columnType), sizeof(columnType));
+
+				int columnSize = column.getSize();
+				outFile.write(reinterpret_cast<const char*>(&columnSize), sizeof(columnSize));
+
+				const string& defaultValue = column.getDefaultValue();
+				int defaultValueLength = defaultValue.length();
+				outFile.write(reinterpret_cast<const char*>(&defaultValueLength), sizeof(defaultValueLength));
+				outFile.write(defaultValue.c_str(), defaultValueLength);
+
+				bool unique = column.isUnique();
+				outFile.write(reinterpret_cast<const char*>(&unique), sizeof(unique));
+			}
+
+			//write the table data to the file
+			int noRows = table.getNoRows();
+			outFile.write(reinterpret_cast<const char*>(&noRows), sizeof(noRows));
+			for (int j = 0; j < noRows; ++j) {
+				const Row& row = table.getRow(j);
+				for (int k = 0; k < noColumns; ++k) {
+					const string& value = row.getTextData(k);
+					int valueLength = value.length();
+					outFile.write(reinterpret_cast<const char*>(&valueLength), sizeof(valueLength));
+					outFile.write(value.c_str(), valueLength);
+				}
+			}
+
+			outFile.close();
+		}
+
+		cout << endl << "Database saved successfully.";
+	}
+	void loadDatabase(const string& tablesConfigAddress, const string& selectCommandsAddress) {
+		//clear the current database
+		for (int i = 0; i < noTables; ++i) {
+			removeTable(0);
+		}
+
+		//clear the contents of the select_commands folder
+		for (const auto& entry : filesystem::directory_iterator(selectCommandsAddress)) {
+			filesystem::remove_all(entry.path());
+		}
+
+		//iterate over the files in the directory where the tables are saved
+		for (const auto& entry : filesystem::directory_iterator(tablesConfigAddress)) {
+			if (entry.path().extension() == ".bin") {
+				ifstream inFile(entry.path(), ios::binary);
+				if (!inFile) {
+					cout << "Error: Could not open file " << entry.path() << endl;
+					continue;
+				}
+
+				//read the table structure from the file
+				int nameLength;
+				inFile.read(reinterpret_cast<char*>(&nameLength), sizeof(nameLength));
+				string tableName(nameLength, ' ');
+				inFile.read(&tableName[0], nameLength);
+
+				int noColumns;
+				inFile.read(reinterpret_cast<char*>(&noColumns), sizeof(noColumns));
+				Column* columns = new Column[noColumns];
+				for (int j = 0; j < noColumns; ++j) {
+					int columnNameLength;
+					inFile.read(reinterpret_cast<char*>(&columnNameLength), sizeof(columnNameLength));
+					string columnName(columnNameLength, ' ');
+					inFile.read(&columnName[0], columnNameLength);
+
+					ColumnType columnType;
+					inFile.read(reinterpret_cast<char*>(&columnType), sizeof(columnType));
+
+					int columnSize;
+					inFile.read(reinterpret_cast<char*>(&columnSize), sizeof(columnSize));
+
+					int defaultValueLength;
+					inFile.read(reinterpret_cast<char*>(&defaultValueLength), sizeof(defaultValueLength));
+					string defaultValue(defaultValueLength, ' ');
+					inFile.read(&defaultValue[0], defaultValueLength);
+
+					bool unique;
+					inFile.read(reinterpret_cast<char*>(&unique), sizeof(unique));
+
+					try {
+						columns[j] = Column(columnName, columnType, columnSize, defaultValue, unique);
+					}
+					catch (const invalid_argument& e) {
+						cout << endl << e.what();
+					}
+				}
+
+				Table table(tableName, columns, noColumns);
+				delete[] columns;
+
+				//read the table data from the file
+				int noRows;
+				inFile.read(reinterpret_cast<char*>(&noRows), sizeof(noRows));
+				for (int j = 0; j < noRows; ++j) {
+					string* values = new string[noColumns];
+					for (int k = 0; k < noColumns; ++k) {
+						int valueLength;
+						inFile.read(reinterpret_cast<char*>(&valueLength), sizeof(valueLength));
+						string value(valueLength, ' ');
+						inFile.read(&value[0], valueLength);
+						values[k] = value;
+					}
+					table.addRowWithoutPrintMessage(values);
+					delete[] values;
+				}
+
+				addTableToDatabase(table);
+				inFile.close();
+			}
+		}
+
+		cout << endl << "Database loaded successfully." << endl;
 	}
 };
 
@@ -3060,7 +3186,6 @@ public:
 };
 
 class FilesManager {
-private:
 public:
 	const static string TABLES_CONFIG_ADDRESS;
 	const static string SELECT_COMMANDS_ADDRESS;
@@ -3087,158 +3212,6 @@ public:
 			file.close();
 		}
 	}
-	void saveDatabase(const Database& db) {
-		int noTables = db.getNoTables();
-		Table** tables = db.getAllTables();
-
-		for (int i = 0; i < noTables; i++) {
-			const Table& table = *tables[i];
-			string filename = TABLES_CONFIG_ADDRESS + table.getName() + ".bin";
-			ofstream outFile(filename, ios::binary);
-			if (!outFile) {
-				cout << endl << "Error: Could not create file " << filename;
-				continue;
-			}
-
-			//write the table structure to the file
-			int nameLength = table.getName().length();
-			outFile.write(reinterpret_cast<const char*>(&nameLength), sizeof(nameLength));
-			outFile.write(table.getName().c_str(), nameLength);
-
-			int noColumns = table.getNoColumns();
-			outFile.write(reinterpret_cast<const char*>(&noColumns), sizeof(noColumns));
-			for (int j = 0; j < noColumns; ++j) {
-				const Column& column = table.getColumn(j);
-				const string& columnName = column.getName();
-				int columnNameLength = columnName.length();
-				outFile.write(reinterpret_cast<const char*>(&columnNameLength), sizeof(columnNameLength));
-				outFile.write(columnName.c_str(), columnNameLength);
-
-				ColumnType columnType = column.getType();
-				outFile.write(reinterpret_cast<const char*>(&columnType), sizeof(columnType));
-
-				int columnSize = column.getSize();
-				outFile.write(reinterpret_cast<const char*>(&columnSize), sizeof(columnSize));
-
-				const string& defaultValue = column.getDefaultValue();
-				int defaultValueLength = defaultValue.length();
-				outFile.write(reinterpret_cast<const char*>(&defaultValueLength), sizeof(defaultValueLength));
-				outFile.write(defaultValue.c_str(), defaultValueLength);
-
-				bool unique = column.isUnique();
-				outFile.write(reinterpret_cast<const char*>(&unique), sizeof(unique));
-			}
-
-			//write the table data to the file
-			int noRows = table.getNoRows();
-			outFile.write(reinterpret_cast<const char*>(&noRows), sizeof(noRows));
-			for (int j = 0; j < noRows; ++j) {
-				const Row& row = table.getRow(j);
-				for (int k = 0; k < noColumns; ++k) {
-					const string& value = row.getTextData(k);
-					int valueLength = value.length();
-					outFile.write(reinterpret_cast<const char*>(&valueLength), sizeof(valueLength));
-					outFile.write(value.c_str(), valueLength);
-				}
-			}
-
-			outFile.close();
-		}
-
-		//clean up the copied tables (not the original ones) (the copies from the getAllTables() function)
-		for (int i = 0; i < noTables; i++) {
-			delete tables[i];
-		}
-		delete[] tables;
-
-		cout << endl << "Database saved successfully.";
-	}
-	void loadDatabase(Database& db) {
-		//clear the current database
-		int noTables = db.getNoTables();
-		for (int i = 0; i < noTables; ++i) {
-			db.removeTable(0);
-		}
-
-		//clear the contents of the select_commands folder
-		string selectCommandsPath = SELECT_COMMANDS_ADDRESS;
-		for (const auto& entry : filesystem::directory_iterator(selectCommandsPath)) {
-			filesystem::remove_all(entry.path());
-		}
-
-		//iterate over the files in the directory where the tables are saved
-		string path = TABLES_CONFIG_ADDRESS;
-		for (const auto& entry : filesystem::directory_iterator(path)) {
-			if (entry.path().extension() == ".bin") {
-				ifstream inFile(entry.path(), ios::binary);
-				if (!inFile) {
-					cout << "Error: Could not open file " << entry.path() << endl;
-					continue;
-				}
-
-				//read the table structure from the file
-				int nameLength;
-				inFile.read(reinterpret_cast<char*>(&nameLength), sizeof(nameLength));
-				string tableName(nameLength, ' ');
-				inFile.read(&tableName[0], nameLength);
-
-				int noColumns;
-				inFile.read(reinterpret_cast<char*>(&noColumns), sizeof(noColumns));
-				Column* columns = new Column[noColumns];
-				for (int j = 0; j < noColumns; ++j) {
-					int columnNameLength;
-					inFile.read(reinterpret_cast<char*>(&columnNameLength), sizeof(columnNameLength));
-					string columnName(columnNameLength, ' ');
-					inFile.read(&columnName[0], columnNameLength);
-
-					ColumnType columnType;
-					inFile.read(reinterpret_cast<char*>(&columnType), sizeof(columnType));
-
-					int columnSize;
-					inFile.read(reinterpret_cast<char*>(&columnSize), sizeof(columnSize));
-
-					int defaultValueLength;
-					inFile.read(reinterpret_cast<char*>(&defaultValueLength), sizeof(defaultValueLength));
-					string defaultValue(defaultValueLength, ' ');
-					inFile.read(&defaultValue[0], defaultValueLength);
-
-					bool unique;
-					inFile.read(reinterpret_cast<char*>(&unique), sizeof(unique));
-
-					try {
-						columns[j] = Column(columnName, columnType, columnSize, defaultValue, unique);
-					}
-					catch (const invalid_argument& e) {
-						cout << endl << e.what();
-					}
-				}
-
-				Table table(tableName, columns, noColumns);
-				delete[] columns;
-
-				//read the table data from the file
-				int noRows;
-				inFile.read(reinterpret_cast<char*>(&noRows), sizeof(noRows));
-				for (int j = 0; j < noRows; ++j) {
-					string* values = new string[noColumns];
-					for (int k = 0; k < noColumns; ++k) {
-						int valueLength;
-						inFile.read(reinterpret_cast<char*>(&valueLength), sizeof(valueLength));
-						string value(valueLength, ' ');
-						inFile.read(&value[0], valueLength);
-						values[k] = value;
-					}
-					table.addRowWithoutPrintMessage(values);
-					delete[] values;
-				}
-
-				db.addTableToDatabase(table);
-				inFile.close();
-			}
-		}
-
-		cout << endl << "Database loaded successfully." << endl;
-	}
 };
 
 const string FilesManager::TABLES_CONFIG_ADDRESS = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\tables_config\\";
@@ -3257,7 +3230,7 @@ int main() {
 
 	cout << "Use the 'help' command to view available commands and their syntax." << endl;
 
-	fm.loadDatabase(db);
+	db.loadDatabase(FilesManager::TABLES_CONFIG_ADDRESS, FilesManager::SELECT_COMMANDS_ADDRESS);
 
 	//read commands from multiple files at the start
 	fm.readStartCommandsFromFiles(FilesManager::START_COMMANDS_ADDRESSES, FilesManager::MAX_COMMANDS_FILES, commands);
@@ -3274,7 +3247,7 @@ int main() {
 		commands.handleCommand(userCommand);
 	}
 
-	fm.saveDatabase(db);
+	db.saveDatabase(FilesManager::TABLES_CONFIG_ADDRESS);
 
 	return 0;
 }
