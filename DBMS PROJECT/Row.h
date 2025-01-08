@@ -10,9 +10,6 @@ private:
 	string* data;
 	int noColumns;
 
-	bool isValidInt(const string& value) const;
-	bool isValidFloat(const string& value) const;
-
 public:
 	//DESTRUCTOR
 	~Row();

@@ -111,7 +111,7 @@ public:
 			delete[] this->rows;
 		}
 	}
-	//--------------------------------------------------
+
 	//SETTERS
 	void setName(const string& name) {
 		if (name.empty() || name.size() < 2) {
@@ -189,7 +189,7 @@ public:
 		}
 		return *this->rows[index];
 	}
-	//--------------------------------------------------
+
 	//ROWS
 	void deleteRow(int index) {
 		if (index < 0 || index >= this->noRows) {
@@ -277,8 +277,68 @@ public:
 
 		cout << endl << "Values inserted into table '" << name << "' successfully.";
 	}
+	void addRowWithoutPrintMessage(const string* values) {
+		if (values == nullptr) {
+			cout << endl << "Error: row values cannot be null.";
+			return;
+		}
+		Row* newRow = new Row(this->noColumns);
 
-	//--------------------------------------------------
+		for (int i = 0; i < this->noColumns; i++) {
+			const Column& column = this->getColumn(i);
+
+			//check if is UNIQUE
+			if (column.isUnique()) {
+				for (int j = 0; j < this->noRows; j++) {
+					if (this->rows[j]->getTextData(i) == values[i]) {
+						cout << endl << "Error: Value for column: " << column.getName() << " must be unique.";
+						return;
+					}
+				}
+			}
+
+			//check for size
+			if (values[i].size() > column.getSize()) {
+				cout << endl << "Error: Value for column: " << column.getName() << " exceeds the maximum size of " << column.getSize() << ".";
+				return;
+			}
+
+			//setting the value
+			switch (column.getType()) {
+			case INT:
+				newRow->setIntData(i, values[i]);
+				break;
+			case TEXT:
+				newRow->setStringData(i, values[i]);
+				break;
+			case FLOAT:
+				newRow->setFloatData(i, values[i]);
+				break;
+			case BOOLEAN:
+				newRow->setStringData(i, values[i] == "TRUE" ? "TRUE" : "FALSE");
+				break;
+			case DATE:
+				newRow->setStringData(i, values[i]); //DATE AS STRING
+				break;
+			default:
+				cout << endl << "Error: Unsupported column type.";
+				return;
+			}
+		}
+
+		Row** tempRows = new Row * [this->noRows + 1];
+
+		for (int i = 0; i < this->noRows; ++i) {
+			tempRows[i] = this->rows[i];
+		}
+
+		tempRows[this->noRows] = newRow;
+
+		delete[] this->rows;
+		this->rows = tempRows;
+		this->noRows++;
+	}
+
 	//COLUMNS
 	bool columnExists(const string& name) const {
 		for (int i = 0; i < noColumns; i++) {
@@ -427,7 +487,6 @@ public:
 		}
 	}
 
-	//--------------------------------------------------
 	//ONLY PRINTS THE TABLE STRUCTURE WITHOUT THE CONTENTS (only columns)
 	void describeTable() const {
 		cout << endl << "Table name: " << this->getName() << endl;
@@ -664,6 +723,21 @@ public:
 		delete indexes;
 	}
 	//GETTERS
+	int getNoTables() const {
+		return this->noTables;
+	}
+	Table** getAllTables() const {
+		if (this->database == nullptr || this->noTables == 0) {
+			return nullptr;
+		}
+
+		Table** copyDatabase = new Table * [this->noTables];
+		for (int i = 0; i < this->noTables; i++) {
+			copyDatabase[i] = new Table(*this->database[i]); //use the copy constructor to create a deep copy
+		}
+
+		return copyDatabase;
+	}
 	int getTableIndex(const string& name) const {
 		for (int i = 0; i < noTables; i++) {
 			if (database[i]->getName() == name) {
@@ -695,6 +769,30 @@ public:
 			return true;
 		}
 		return false;
+	}
+	void removeTable(int index) {
+		if (index < 0 || index >= noTables) {
+			cout << endl << "Error: Invalid table index.";
+			return;
+		}
+
+		Table** newDatabase = new Table * [noTables - 1];
+		int tempIndex = 0;
+
+		for (int i = 0; i < noTables; i++) {
+			if (i != index) {
+				newDatabase[tempIndex++] = database[i];
+			}
+			else {
+				delete database[i];
+			}
+		}
+
+		delete[] database;
+		database = newDatabase;
+		noTables--;
+
+		tableNames->removeName(database[index]->getName());
 	}
 	//--------------------------------------------------
 	void createTable(const string& name, Column* columns, int noColumns) {
@@ -749,6 +847,11 @@ public:
 
 		//also remove the table name from tableNames
 		tableNames->removeName(name);
+
+		string filename = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\tables_config\\" + name + ".bin";
+		if (filesystem::exists(filename)) {
+			filesystem::remove(filename);
+		}
 
 		cout << endl << "Table: " << "'" << name << "'" << " dropped successfully.";
 	}
@@ -1531,52 +1634,6 @@ private:
 	}
 private:
 	//every command is in a try block to avoid crashing the program and printing error messages instead
-	void stringCommandSelectAll(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command starts with "SELECT ALL FROM "
-			if (commandCopy.find("SELECT ALL FROM ") != 0) {    //if it does not start with "SELECT ALL FROM " with space
-				//or without a space after "FROM"
-				if (commandCopy.find("SELECT ALL FROM") == 0) {  //if it starts with "SELECT ALL FROM" without a space after
-					cout << endl << "Invalid command format.";
-				}
-				else {
-					cout << endl << "Invalid command format.";
-				}
-				return;
-			}
-
-			//find the position of "FROM " and make sure there is a space after it
-			size_t pos = commandCopy.find("FROM ") + 5;  // 5 is the length of "FROM " with the space
-			if (pos >= commandCopy.length()) {
-				cout << endl << "Invalid command format. Too few arguments.";
-				return;
-			}
-
-			//get the table name
-			string tableName = commandCopy.substr(pos);
-			trim(tableName);
-
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Too few arguments.";
-				return;
-			}
-
-			//check for extra arguments
-			size_t extraArgsPos = tableName.find(' ');
-			if (extraArgsPos != string::npos) {
-				cout << endl << "Invalid command format. Too many arguments.";
-				return;
-			}
-
-			db->selectALL(tableName);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
 	void stringCommandCreateTable(const string& command) {
 		try {
 			string commandCopy = command;
@@ -1759,6 +1816,52 @@ private:
 
 			delete[] columns;
 			delete[] tableColumns;
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandSelectAll(const string& command) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			//check if the command starts with "SELECT ALL FROM "
+			if (commandCopy.find("SELECT ALL FROM ") != 0) {    //if it does not start with "SELECT ALL FROM " with space
+				//or without a space after "FROM"
+				if (commandCopy.find("SELECT ALL FROM") == 0) {  //if it starts with "SELECT ALL FROM" without a space after
+					cout << endl << "Invalid command format.";
+				}
+				else {
+					cout << endl << "Invalid command format.";
+				}
+				return;
+			}
+
+			//find the position of "FROM " and make sure there is a space after it
+			size_t pos = commandCopy.find("FROM ") + 5;  // 5 is the length of "FROM " with the space
+			if (pos >= commandCopy.length()) {
+				cout << endl << "Invalid command format. Too few arguments.";
+				return;
+			}
+
+			//get the table name
+			string tableName = commandCopy.substr(pos);
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Too few arguments.";
+				return;
+			}
+
+			//check for extra arguments
+			size_t extraArgsPos = tableName.find(' ');
+			if (extraArgsPos != string::npos) {
+				cout << endl << "Invalid command format. Too many arguments.";
+				return;
+			}
+
+			db->selectALL(tableName);
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2644,23 +2747,6 @@ private:
 			cout << endl << e.what();
 		}
 	}
-	void stringCommandExitProgram(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command is "exit"
-			if (commandCopy != "exit") {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			exit(0);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
 	void stringCommandHelpMenu(const string& command) {
 		try {
 			string commandCopy = command;
@@ -2757,9 +2843,6 @@ public:
 		else if (containsWord(command, "clear")) {
 			stringCommandClearConsole(command);
 		}
-		else if (containsWord(command, "exit")) {
-			stringCommandExitProgram(command);
-		}
 		else if (containsWord(command, "help") && !containsWord(command, "2")) {
 			stringCommandHelpMenu(command);
 		}
@@ -2775,6 +2858,7 @@ public:
 class FilesManager {
 private:
 public:
+	const static string TABLES_CONFIG_ADDRESS;
 	const static int MAX_COMMANDS_FILES;
 	const static string START_COMMANDS_ADDRESSES[];
 public:
@@ -2798,8 +2882,155 @@ public:
 			file.close();
 		}
 	}
+	void saveDatabase(const Database& db) {
+		int noTables = db.getNoTables();
+		Table** tables = db.getAllTables();
+
+		for (int i = 0; i < noTables; i++) {
+			const Table& table = *tables[i];
+			string filename = TABLES_CONFIG_ADDRESS + table.getName() + ".bin";
+			ofstream outFile(filename, ios::binary);
+			if (!outFile) {
+				cout << endl << "Error: Could not create file " << filename;
+				continue;
+			}
+
+			//write the table structure to the file
+			int nameLength = table.getName().length();
+			outFile.write(reinterpret_cast<const char*>(&nameLength), sizeof(nameLength));
+			outFile.write(table.getName().c_str(), nameLength);
+
+			int noColumns = table.getNoColumns();
+			outFile.write(reinterpret_cast<const char*>(&noColumns), sizeof(noColumns));
+			for (int j = 0; j < noColumns; ++j) {
+				const Column& column = table.getColumn(j);
+				const string& columnName = column.getName();
+				int columnNameLength = columnName.length();
+				outFile.write(reinterpret_cast<const char*>(&columnNameLength), sizeof(columnNameLength));
+				outFile.write(columnName.c_str(), columnNameLength);
+
+				ColumnType columnType = column.getType();
+				outFile.write(reinterpret_cast<const char*>(&columnType), sizeof(columnType));
+
+				int columnSize = column.getSize();
+				outFile.write(reinterpret_cast<const char*>(&columnSize), sizeof(columnSize));
+
+				const string& defaultValue = column.getDefaultValue();
+				int defaultValueLength = defaultValue.length();
+				outFile.write(reinterpret_cast<const char*>(&defaultValueLength), sizeof(defaultValueLength));
+				outFile.write(defaultValue.c_str(), defaultValueLength);
+
+				bool unique = column.isUnique();
+				outFile.write(reinterpret_cast<const char*>(&unique), sizeof(unique));
+			}
+
+			//write the table data to the file
+			int noRows = table.getNoRows();
+			outFile.write(reinterpret_cast<const char*>(&noRows), sizeof(noRows));
+			for (int j = 0; j < noRows; ++j) {
+				const Row& row = table.getRow(j);
+				for (int k = 0; k < noColumns; ++k) {
+					const string& value = row.getTextData(k);
+					int valueLength = value.length();
+					outFile.write(reinterpret_cast<const char*>(&valueLength), sizeof(valueLength));
+					outFile.write(value.c_str(), valueLength);
+				}
+			}
+
+			outFile.close();
+		}
+
+		//clean up the copied tables (not the original ones) (the copies from the getAllTables() function)
+		for (int i = 0; i < noTables; i++) {
+			delete tables[i];
+		}
+		delete[] tables;
+
+		cout << endl << "Database saved successfully.";
+	}
+	void loadDatabase(Database& db) {
+		//clear the current database
+		int noTables = db.getNoTables();
+		for (int i = 0; i < noTables; ++i) {
+			db.removeTable(0);
+		}
+
+		//iterate over the files in the directory where the tables are saved
+		string path = TABLES_CONFIG_ADDRESS;
+		for (const auto& entry : filesystem::directory_iterator(path)) {
+			if (entry.path().extension() == ".bin") {
+				ifstream inFile(entry.path(), ios::binary);
+				if (!inFile) {
+					cout << "Error: Could not open file " << entry.path() << endl;
+					continue;
+				}
+
+				//read the table structure from the file
+				int nameLength;
+				inFile.read(reinterpret_cast<char*>(&nameLength), sizeof(nameLength));
+				string tableName(nameLength, ' ');
+				inFile.read(&tableName[0], nameLength);
+
+				int noColumns;
+				inFile.read(reinterpret_cast<char*>(&noColumns), sizeof(noColumns));
+				Column* columns = new Column[noColumns];
+				for (int j = 0; j < noColumns; ++j) {
+					int columnNameLength;
+					inFile.read(reinterpret_cast<char*>(&columnNameLength), sizeof(columnNameLength));
+					string columnName(columnNameLength, ' ');
+					inFile.read(&columnName[0], columnNameLength);
+
+					ColumnType columnType;
+					inFile.read(reinterpret_cast<char*>(&columnType), sizeof(columnType));
+
+					int columnSize;
+					inFile.read(reinterpret_cast<char*>(&columnSize), sizeof(columnSize));
+
+					int defaultValueLength;
+					inFile.read(reinterpret_cast<char*>(&defaultValueLength), sizeof(defaultValueLength));
+					string defaultValue(defaultValueLength, ' ');
+					inFile.read(&defaultValue[0], defaultValueLength);
+
+					bool unique;
+					inFile.read(reinterpret_cast<char*>(&unique), sizeof(unique));
+
+					try {
+						columns[j] = Column(columnName, columnType, columnSize, defaultValue, unique);
+					}
+					catch (const invalid_argument& e) {
+						cout << endl << e.what();
+					}
+				}
+
+				Table table(tableName, columns, noColumns);
+				delete[] columns;
+
+				//read the table data from the file
+				int noRows;
+				inFile.read(reinterpret_cast<char*>(&noRows), sizeof(noRows));
+				for (int j = 0; j < noRows; ++j) {
+					string* values = new string[noColumns];
+					for (int k = 0; k < noColumns; ++k) {
+						int valueLength;
+						inFile.read(reinterpret_cast<char*>(&valueLength), sizeof(valueLength));
+						string value(valueLength, ' ');
+						inFile.read(&value[0], valueLength);
+						values[k] = value;
+					}
+					table.addRowWithoutPrintMessage(values);
+					delete[] values;
+				}
+
+				db.addTableToDatabase(table);
+				inFile.close();
+			}
+		}
+
+		cout << endl << "Database loaded successfully." << endl;
+	}
 };
 
+const string FilesManager::TABLES_CONFIG_ADDRESS = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\tables_config\\";
 const int FilesManager::MAX_COMMANDS_FILES = 5;
 const string FilesManager::START_COMMANDS_ADDRESSES[FilesManager::MAX_COMMANDS_FILES] = {
 	"D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\start_commands\\commands1.txt",
@@ -2813,6 +3044,8 @@ int main() {
 	string userCommand;
 
 	cout << "Use the 'help' command to view available commands and their syntax." << endl;
+
+	fm.loadDatabase(db);
 
 	//read commands from multiple files at the start
 	//fm.readStartCommandsFromFiles(FilesManager::START_COMMANDS_ADDRESSES, FilesManager::MAX_COMMANDS_FILES, commands);
@@ -2828,6 +3061,8 @@ int main() {
 
 		commands.handleCommand(userCommand);
 	}
+
+	fm.saveDatabase(db);
 
 	return 0;
 }

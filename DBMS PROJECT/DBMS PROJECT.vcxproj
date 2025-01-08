@@ -132,12 +132,14 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Row.cpp" />
     <ClCompile Include="TableNames.cpp" />
+    <ClCompile Include="ValidateDataType.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Column.h" />
     <ClInclude Include="Index.h" />
     <ClInclude Include="Row.h" />
     <ClInclude Include="TableNames.h" />
+    <ClInclude Include="ValidateDataType.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

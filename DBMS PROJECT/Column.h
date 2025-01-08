@@ -14,9 +14,7 @@ private:
 	int size;
 	string defaultValue;
 	bool unique;
-
-	bool isValidInt(const string& value);
-	bool isValidFloat(const string& value);
+	const static int NAME_MIN_SIZE;
 
 public:
 	//SETTERS

@@ -1,51 +1,8 @@
 #include "Row.h"
+#include "ValidateDataType.h"
 #include <iostream>
 
 using namespace std;
-
-//private methods
-bool Row::isValidInt(const string& value) const {
-	if (value.empty()) return false;
-	size_t i = 0;
-
-	//handle negative sign
-	if (value[0] == '-') {
-		if (value.length() == 1) return false; // "-" alone is not a valid integer
-		i++;
-	}
-
-	//check that all remaining characters are digits
-	for (; i < value.length(); i++) {
-		if (value[i] < '0' || value[i] > '9') {
-			return false; //non-digit character found
-		}
-	}
-
-	return true;
-}
-bool Row::isValidFloat(const string& value) const {
-	if (value.empty()) return false;
-	size_t i = 0;
-	bool decimalPointFound = false;
-
-	if (value[0] == '-') {
-		if (value.length() == 1) return false;
-		i++;
-	}
-
-	//iterate through the characters
-	for (; i < value.length(); i++) {
-		if (value[i] == '.') {
-			if (decimalPointFound) return false; //more than one decimal point
-			decimalPointFound = true;
-		}
-		else if (value[i] < '0' || value[i] > '9') {
-			return false; //non-digit character found
-		}
-	}
-
-	return true;
-}
 
 //public methods
 //DESTRUCTOR
@@ -94,7 +51,7 @@ void Row::setIntData(int columnIndex, const string& value) {
 	if (columnIndex < 0 || columnIndex >= noColumns)
 		throw out_of_range("Column index out of range.");
 
-	if (!isValidInt(value)) {
+	if (!ValidateDataType::isValidInt(value)) {
 		throw invalid_argument("Provided value is not a valid integer.");
 	}
 
@@ -104,7 +61,7 @@ void Row::setFloatData(int columnIndex, const string& value) {
 	if (columnIndex < 0 || columnIndex >= noColumns)
 		throw out_of_range("Column index out of range.");
 
-	if (!isValidFloat(value)) {
+	if (!ValidateDataType::isValidFloat(value)) {
 		throw invalid_argument("Provided value is not a valid float.");
 	}
 
@@ -115,7 +72,7 @@ void Row::setFloatData(int columnIndex, const string& value) {
 int Row::getIntData(int columnIndex) const {
 	if (columnIndex < 0 || columnIndex >= noColumns)
 		throw out_of_range("Column index out of range.");
-	if (!isValidInt(data[columnIndex])) {
+	if (!ValidateDataType::isValidInt(data[columnIndex])) {
 		throw invalid_argument("Data at the specified index is not a valid integer.");
 	}
 	return stoi(data[columnIndex]);
@@ -129,7 +86,7 @@ string Row::getTextData(int columnIndex) const {
 float Row::getFloatData(int columnIndex) const {
 	if (columnIndex < 0 || columnIndex >= noColumns)
 		throw out_of_range("Column index out of range.");
-	if (!isValidFloat(data[columnIndex])) {
+	if (!ValidateDataType::isValidFloat(data[columnIndex])) {
 		throw invalid_argument("Data at the specified index is not a valid float.");
 	}
 	return stof(data[columnIndex]);

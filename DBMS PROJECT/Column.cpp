@@ -1,57 +1,16 @@
 #include "Column.h"
+#include "ValidateDataType.h"
 #include <iostream>
 
 using namespace std;
 
-//private methods
-bool Column::isValidInt(const string& value) {
-	if (value.empty()) return false;
-	size_t i = 0;
-
-	//handle negative sign
-	if (value[0] == '-') {
-		if (value.length() == 1) return false; // "-" alone is not a valid integer
-		i++;
-	}
-
-	//check that all remaining characters are digits
-	for (; i < value.length(); i++) {
-		if (value[i] < '0' || value[i] > '9') {
-			return false; //non-digit character found
-		}
-	}
-
-	return true;
-}
-bool Column::isValidFloat(const string& value) {
-	if (value.empty()) return false;
-	size_t i = 0;
-	bool decimalPointFound = false;
-
-	if (value[0] == '-') {
-		if (value.length() == 1) return false;
-		i++;
-	}
-
-	//iterate through the characters
-	for (; i < value.length(); i++) {
-		if (value[i] == '.') {
-			if (decimalPointFound) return false; //more than one decimal point
-			decimalPointFound = true;
-		}
-		else if (value[i] < '0' || value[i] > '9') {
-			return false; //non-digit character found
-		}
-	}
-
-	return true;
-}
+const int Column::NAME_MIN_SIZE = 2;
 
 //public methods
 //SETTERS
 void Column::setName(const string& name) {
-	if (name.empty() || name.size() < 2) {
-		throw invalid_argument("Name cannot be empty or less than two characters.");
+	if (name.empty() || name.size() < NAME_MIN_SIZE) {
+		throw invalid_argument("Name cannot be empty or less than " + to_string(NAME_MIN_SIZE) + " characters.");
 	}
 	this->name = name;
 }
@@ -73,7 +32,7 @@ void Column::setDefaultValue(const string& defaultValue) {
 		this->defaultValue = defaultValue;
 		break;
 	case INT:
-		if (isValidInt(defaultValue)) {
+		if (ValidateDataType::isValidInt(defaultValue)) {
 			this->defaultValue = defaultValue;
 		}
 		else {
@@ -81,7 +40,7 @@ void Column::setDefaultValue(const string& defaultValue) {
 		}
 		break;
 	case FLOAT:
-		if (isValidFloat(defaultValue)) {
+		if (ValidateDataType::isValidFloat(defaultValue)) {
 			this->defaultValue = defaultValue;
 		}
 		else {
