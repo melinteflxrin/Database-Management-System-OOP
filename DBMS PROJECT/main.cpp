@@ -661,6 +661,8 @@ private:
 	TableNames* tableNames = nullptr;
 	Index* indexes = nullptr;
 
+	static int selectCount;
+
 	bool isValidInt(const string& value) {
 		if (value.empty()) return false;
 		size_t i = 0;
@@ -940,9 +942,31 @@ public:
 		}
 
 		int index = getTableIndex(name);
+
+		//find a unique file name
+		string fileName;
+		do {
+			selectCount++;
+			fileName = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\select_commands\\SELECT_" + to_string(selectCount) + ".txt";
+		} while (filesystem::exists(fileName));
+
+		//redirect cout to a file
+		ofstream outFile(fileName);
+		streambuf* coutBuf = cout.rdbuf(); //save old buffer
+		cout.rdbuf(outFile.rdbuf()); //redirect cout to file
+
+		//display table
+		database[index]->displayTable();
+
+		//restore cout to its original state
+		cout.rdbuf(coutBuf);
+
+		//also display on the screen
 		database[index]->displayTable();
 	}
 	void selectWHERE(const string& tableName, const string* columnNames, int noColumns, const string& conditionColumn, const string& value) {
+		selectCount++;
+
 		if (!tableExists(tableName)) {
 			cout << endl << "Error: Table '" << tableName << "' does not exist.";
 			return;
@@ -1031,6 +1055,51 @@ public:
 			totalWidth += maxWidth[i] + 8;  //add 8 for padding between columns
 		}
 
+		//check if any rows match the condition
+		bool valueFound = false;
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			bool found = true;
+			const Column& conditionCol = table->getColumn(conditionColumn);
+			switch (conditionCol.getType()) {
+			case INT:
+				if (row.getIntData(conditionColumnIndex) != stoi(value)) {
+					found = false;
+				}
+				break;
+			case TEXT:
+				if (row.getTextData(conditionColumnIndex) != value) {
+					found = false;
+				}
+				break;
+			case FLOAT:
+				if (row.getFloatData(conditionColumnIndex) != stof(value)) {
+					found = false;
+				}
+				break;
+			default:
+				found = false;
+			}
+
+			if (found) {
+				valueFound = true;
+				break;
+			}
+		}
+
+		if (!valueFound) {
+			cout << "No rows found with " << conditionColumn << " = " << value << endl;
+			delete[] columnIndexes;
+			delete[] maxWidth;
+			return;
+		}
+
+		//redirect cout to a file
+		string fileName = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\select_commands\\SELECT_" + to_string(selectCount) + ".txt";
+		ofstream outFile(fileName);
+		streambuf* coutBuf = cout.rdbuf(); //save old buffer
+		cout.rdbuf(outFile.rdbuf()); //redirect cout to file
+
 		//print the separator line
 		cout << endl << string(totalWidth, '-') << endl;
 
@@ -1045,7 +1114,81 @@ public:
 		cout << endl << string(totalWidth, '-') << endl;
 
 		//print rows that match the condition
-		bool valueFound = false;
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			bool found = true;
+			const Column& conditionCol = table->getColumn(conditionColumn);
+			switch (conditionCol.getType()) {
+			case INT:
+				if (row.getIntData(conditionColumnIndex) != stoi(value)) {
+					found = false;
+				}
+				break;
+			case TEXT:
+				if (row.getTextData(conditionColumnIndex) != value) {
+					found = false;
+				}
+				break;
+			case FLOAT:
+				if (row.getFloatData(conditionColumnIndex) != stof(value)) {
+					found = false;
+				}
+				break;
+			default:
+				found = false;
+			}
+
+			if (found) {
+				for (int j = 0; j < noColumns; j++) {
+					const Column& column = table->getColumn(columnNames[j]);
+					string dataToString;
+					if (column.getType() == INT) {
+						dataToString = to_string(row.getIntData(columnIndexes[j]));
+					}
+					else if (column.getType() == TEXT) {
+						dataToString = row.getTextData(columnIndexes[j]);
+					}
+					else if (column.getType() == FLOAT) {
+						float value = row.getFloatData(columnIndexes[j]);
+						string floatStr = to_string(value);
+						size_t dotPos = floatStr.find('.');
+						if (dotPos != string::npos) {
+							floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal
+						}
+						dataToString = floatStr;
+					}
+					else {
+						dataToString = "N/A";  // BOOLEAN and DATE
+					}
+
+					cout << dataToString;
+					for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
+						cout << " ";
+					}
+					cout << string(8, ' ');  // 8 spaces between columns
+				}
+				cout << endl;
+			}
+		}
+
+		//print the separator line at the end
+		cout << string(totalWidth, '-') << endl;
+
+		//restore cout to its original state
+		cout.rdbuf(coutBuf);
+
+		//also display on the screen
+		cout << endl << string(totalWidth, '-') << endl;
+		for (int i = 0; i < noColumns; i++) {
+			cout << columnNames[i];
+			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
+				cout << " ";
+			}
+			cout << string(8, ' ');  // 8 spaces between columns
+		}
+		cout << endl << string(totalWidth, '-') << endl;
+
+		valueFound = false;
 		for (int i = 0; i < table->getNoRows(); i++) {
 			Row& row = table->getRow(i);
 			bool found = true;
@@ -1086,19 +1229,19 @@ public:
 						string floatStr = to_string(value);
 						size_t dotPos = floatStr.find('.');
 						if (dotPos != string::npos) {
-							floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+							floatStr = floatStr.substr(0, dotPos + 3);  // two decimal
 						}
 						dataToString = floatStr;
 					}
 					else {
-						dataToString = "N/A";  //BOOLEAN and DATE
+						dataToString = "N/A";  // BOOLEAN and DATE
 					}
 
 					cout << dataToString;
 					for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
 						cout << " ";
 					}
-					cout << string(8, ' ');  //8 spaces between columns
+					cout << string(8, ' ');  // 8 spaces between columns
 				}
 				cout << endl;
 			}
@@ -1108,13 +1251,12 @@ public:
 			cout << "No rows found with " << conditionColumn << " = " << value << endl;
 		}
 
-		//print the separator line at the end
 		cout << string(totalWidth, '-') << endl;
 
 		delete[] columnIndexes;
 		delete[] maxWidth;
 	}
-	void selectColumns(const string& tableName, const string* columnNames, int noColumns) {
+	void selectColumns(const string& tableName, const string* columnNames, int noColumns) const {
 		if (!tableExists(tableName)) {
 			cout << endl << "Error: Table '" << tableName << "' does not exist.";
 			return;
@@ -1168,7 +1310,7 @@ public:
 					string floatStr = to_string(value);
 					size_t dotPos = floatStr.find('.');
 					if (dotPos != string::npos) {
-						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+						floatStr = floatStr.substr(0, dotPos + 3);  //two decimal
 					}
 					currentLength = floatStr.length();
 				}
@@ -1182,11 +1324,24 @@ public:
 		//calculate the total width of the table
 		int totalWidth = 0;
 		for (int i = 0; i < noColumns; i++) {
-			totalWidth += maxWidth[i] + 8;  // add 8 for padding between columns
+			totalWidth += maxWidth[i] + 8;  //add 8 for padding between columns
 		}
 
+		//find a unique file name
+		string fileName;
+		do {
+			selectCount++;
+			fileName = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\select_commands\\SELECT_" + to_string(selectCount) + ".txt";
+		} while (filesystem::exists(fileName));
+
+		//redirect cout to a file
+		ofstream outFile(fileName);
+		streambuf* coutBuf = cout.rdbuf(); //save old buffer
+		cout.rdbuf(outFile.rdbuf()); //redirect cout to file
+
 		//print the separator line
-		cout << endl << string(totalWidth, '-') << endl;
+		string separatorLine(totalWidth, '-');
+		cout << endl << separatorLine << endl;
 
 		//print column headers
 		for (int i = 0; i < noColumns; i++) {
@@ -1194,11 +1349,11 @@ public:
 			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
 				cout << " ";
 			}
-			cout << string(8, ' ');  // add 8 spaces between columns
+			cout << string(8, ' ');  //add 8 spaces between columns
 		}
-		cout << endl << string(totalWidth, '-') << endl;
+		cout << endl << separatorLine << endl;
 
-		//rows
+		//print rows
 		for (int i = 0; i < table->getNoRows(); i++) {
 			Row& row = table->getRow(i);
 			for (int j = 0; j < noColumns; j++) {
@@ -1215,12 +1370,12 @@ public:
 					string floatStr = to_string(value);
 					size_t dotPos = floatStr.find('.');
 					if (dotPos != string::npos) {
-						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
+						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal
 					}
 					dataToString = floatStr;
 				}
 				else {
-					dataToString = "N/A";  //for BOOLEAN and DATE
+					dataToString = "N/A";  // For BOOLEAN and DATE
 				}
 
 				cout << dataToString;
@@ -1233,7 +1388,54 @@ public:
 		}
 
 		//print the separator line at the end
-		cout << string(totalWidth, '-') << endl;
+		cout << separatorLine << endl;
+
+		//restore cout to its original state
+		cout.rdbuf(coutBuf);
+
+		//also display on the screen
+		cout << endl << separatorLine << endl;
+		for (int i = 0; i < noColumns; i++) {
+			cout << columnNames[i];
+			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
+				cout << " ";
+			}
+			cout << string(8, ' ');  //add 8 spaces between columns
+		}
+		cout << endl << separatorLine << endl;
+		for (int i = 0; i < table->getNoRows(); i++) {
+			Row& row = table->getRow(i);
+			for (int j = 0; j < noColumns; j++) {
+				const Column& column = table->getColumn(columnNames[j]);
+				string dataToString;
+				if (column.getType() == INT) {
+					dataToString = to_string(row.getIntData(columnIndexes[j]));
+				}
+				else if (column.getType() == TEXT) {
+					dataToString = row.getTextData(columnIndexes[j]);
+				}
+				else if (column.getType() == FLOAT) {
+					float value = row.getFloatData(columnIndexes[j]);
+					string floatStr = to_string(value);
+					size_t dotPos = floatStr.find('.');
+					if (dotPos != string::npos) {
+						floatStr = floatStr.substr(0, dotPos + 3);  //two decimal
+					}
+					dataToString = floatStr;
+				}
+				else {
+					dataToString = "N/A";  // For BOOLEAN and DATE
+				}
+
+				cout << dataToString;
+				for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
+					cout << " ";
+				}
+				cout << string(8, ' ');  //add 8 spaces between columns
+			}
+			cout << endl;
+		}
+		cout << separatorLine << endl;
 
 		delete[] columnIndexes;
 		delete[] maxWidth;
@@ -1563,6 +1765,8 @@ public:
 		std::cout << "================================================================\n";
 	}
 };
+
+int Database::selectCount = 0;
 
 class Commands {
 private:
@@ -2859,6 +3063,7 @@ class FilesManager {
 private:
 public:
 	const static string TABLES_CONFIG_ADDRESS;
+	const static string SELECT_COMMANDS_ADDRESS;
 	const static int MAX_COMMANDS_FILES;
 	const static string START_COMMANDS_ADDRESSES[];
 public:
@@ -2955,6 +3160,12 @@ public:
 			db.removeTable(0);
 		}
 
+		//clear the contents of the select_commands folder
+		string selectCommandsPath = SELECT_COMMANDS_ADDRESS;
+		for (const auto& entry : filesystem::directory_iterator(selectCommandsPath)) {
+			filesystem::remove_all(entry.path());
+		}
+
 		//iterate over the files in the directory where the tables are saved
 		string path = TABLES_CONFIG_ADDRESS;
 		for (const auto& entry : filesystem::directory_iterator(path)) {
@@ -3031,6 +3242,7 @@ public:
 };
 
 const string FilesManager::TABLES_CONFIG_ADDRESS = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\tables_config\\";
+const string FilesManager::SELECT_COMMANDS_ADDRESS = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\select_commands\\";
 const int FilesManager::MAX_COMMANDS_FILES = 5;
 const string FilesManager::START_COMMANDS_ADDRESSES[FilesManager::MAX_COMMANDS_FILES] = {
 	"D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\start_commands\\commands1.txt",
@@ -3048,7 +3260,7 @@ int main() {
 	fm.loadDatabase(db);
 
 	//read commands from multiple files at the start
-	//fm.readStartCommandsFromFiles(FilesManager::START_COMMANDS_ADDRESSES, FilesManager::MAX_COMMANDS_FILES, commands);
+	fm.readStartCommandsFromFiles(FilesManager::START_COMMANDS_ADDRESSES, FilesManager::MAX_COMMANDS_FILES, commands);
 
 	//continue with console input
 	while (true) {
