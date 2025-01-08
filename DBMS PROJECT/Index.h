@@ -8,13 +8,10 @@ using namespace std;
 class Index {
 private:
 	string* indexNames;  //this is to check if index w a name already exists
-	int noIndexeNames;
 	int* indexValues;    //column position in a specific table
-	int noIndexValues;
 	string* columnNames; //column names to check if there is an index on them
-	int noColumnNames;
 	string* tableNames;  //table names to check if there is an index on them
-	int noTableNames;
+	int noIndexes;
 public:
 	//DESTRUCTOR
 	~Index();
