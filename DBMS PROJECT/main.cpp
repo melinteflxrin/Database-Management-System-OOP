@@ -1,5 +1,8 @@
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <filesystem>
+
 #include "Column.h"
 #include "Row.h"
 #include "TableNames.h"
@@ -2769,18 +2772,61 @@ public:
 	}
 };
 
+class FilesManager {
+private:
+public:
+	const static int MAX_COMMANDS_FILES;
+	const static string START_COMMANDS_ADDRESSES[];
+public:
+	void readStartCommandsFromFiles(const string* filenames, int count, Commands& commands) {
+		for (int i = 0; i < count; ++i) {
+			if (filenames[i].empty()) {
+				continue; //skip empty addresses
+			}
+			ifstream file(filenames[i]);
+			if (!file.is_open()) {
+				cout << endl << "Error: Could not open file " << filenames[i] << endl;
+				continue; //skip to the next file if one can't be opened
+			}
+			string command;
+			while (getline(file, command)) {
+				if (!command.empty()) {
+					commands.handleCommand(command);
+				}
+			}
+			cout << endl;
+			file.close();
+		}
+	}
+};
+
+const int FilesManager::MAX_COMMANDS_FILES = 5;
+const string FilesManager::START_COMMANDS_ADDRESSES[FilesManager::MAX_COMMANDS_FILES] = {
+	"D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\start_commands\\commands1.txt",
+	"D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\start_commands\\commands2.txt"
+};
+
 int main() {
 	Database db;
 	Commands commands(&db);
-	string command;
+	FilesManager fm;
+	string userCommand;
 
-	cout << "Use the 'help' command to view available commands and their syntax.";
+	cout << "Use the 'help' command to view available commands and their syntax." << endl;
 
+	//read commands from multiple files at the start
+	//fm.readStartCommandsFromFiles(FilesManager::START_COMMANDS_ADDRESSES, FilesManager::MAX_COMMANDS_FILES, commands);
+
+	//continue with console input
 	while (true) {
 		cout << endl << ">> ";
-		getline(cin, command);
+		getline(cin, userCommand);
 
-		commands.handleCommand(command);
+		if (userCommand == "exit") {
+			break;
+		}
+
+		commands.handleCommand(userCommand);
 	}
 
 	return 0;
