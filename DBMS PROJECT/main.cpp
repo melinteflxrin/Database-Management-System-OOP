@@ -1802,6 +1802,32 @@ public:
 				}
 			}
 
+			//write the indexes information to the file if the table has any indexes
+			int noIndexes = 0;
+			for (int j = 0; j < indexes->getNoIndexes(); j++) {
+				if (indexes->getIndexTableName(indexes->getIndexName(j)) == table.getName()) {
+					noIndexes++;
+				}
+			}
+
+			outFile.write(reinterpret_cast<const char*>(&noIndexes), sizeof(noIndexes));
+			for (int j = 0; j < indexes->getNoIndexes(); j++) {
+				if (indexes->getIndexTableName(indexes->getIndexName(j)) == table.getName()) {
+					const string& indexName = indexes->getIndexName(j);
+					int indexNameLength = indexName.length();
+					outFile.write(reinterpret_cast<const char*>(&indexNameLength), sizeof(indexNameLength));
+					outFile.write(indexName.c_str(), indexNameLength);
+
+					int indexValue = indexes->getIndexValue(indexes->getIndexColumnName(indexName), table.getName());
+					outFile.write(reinterpret_cast<const char*>(&indexValue), sizeof(indexValue));
+
+					const string& columnName = indexes->getIndexColumnName(indexName);
+					int columnNameLength = columnName.length();
+					outFile.write(reinterpret_cast<const char*>(&columnNameLength), sizeof(columnNameLength));
+					outFile.write(columnName.c_str(), columnNameLength);
+				}
+			}
+
 			outFile.close();
 		}
 
@@ -1881,6 +1907,26 @@ public:
 					}
 					table.addRowWithoutPrintMessage(values);
 					delete[] values;
+				}
+
+				//read the indexes information from the file if the table has any indexes
+				int noIndexes;
+				inFile.read(reinterpret_cast<char*>(&noIndexes), sizeof(noIndexes));
+				for (int j = 0; j < noIndexes; ++j) {
+					int indexNameLength;
+					inFile.read(reinterpret_cast<char*>(&indexNameLength), sizeof(indexNameLength));
+					string indexName(indexNameLength, ' ');
+					inFile.read(&indexName[0], indexNameLength);
+
+					int indexValue;
+					inFile.read(reinterpret_cast<char*>(&indexValue), sizeof(indexValue));
+
+					int columnNameLength;
+					inFile.read(reinterpret_cast<char*>(&columnNameLength), sizeof(columnNameLength));
+					string columnName(columnNameLength, ' ');
+					inFile.read(&columnName[0], columnNameLength);
+
+					indexes->addIndex(indexName, indexValue, columnName, tableName);
 				}
 
 				addTableToDatabase(table);

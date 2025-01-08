@@ -24,6 +24,12 @@ public:
 	Index& operator=(const Index& original);
 	//COPY CONSTRUCTOR
 	Index(const Index& original);
+	//GETTERS
+	const int getNoIndexes() const;
+	const string& getIndexName(const int index) const;
+	int getIndexValue(const string& columnName, const string& tableName) const;
+	string getIndexColumnName(const string& indexName) const;
+	string getIndexTableName(const string& indexName) const;
 
 	void addIndex(const string& indexName, int indexValue, const string& columnName, const string& tableName);
 	void removeIndex(const string& columnName, const string& tableName);
@@ -33,11 +39,6 @@ public:
 	bool indexExistsByIndexName(const string& indexName) const;
 	bool indexExists(const string& columnName, const string& tableName) const;
 	bool indexExistsByTableName(const string& tableName) const;
-
-	int getIndexValue(const string& columnName, const string& tableName) const;
-
-	string getIndexColumnName(const string& indexName) const;
-	string getIndexTableName(const string& indexName) const;
 
 	void showIndexesByTableName(const string& tableName) const;
 	void showAllIndexes() const;

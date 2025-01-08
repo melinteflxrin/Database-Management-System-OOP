@@ -64,6 +64,37 @@ Index::Index(const Index& original) : noIndexeNames(original.noIndexeNames), noI
 		indexNames[i] = original.indexNames[i];
 	}
 }
+//GETTERS
+const int Index::getNoIndexes() const {
+	return noIndexeNames;
+}
+const string& Index::getIndexName(const int index) const {
+	return indexNames[index];
+}
+int Index::getIndexValue(const string& columnName, const string& tableName) const {
+	for (int i = 0; i < noColumnNames; i++) {
+		if (columnNames[i] == columnName && tableNames[i] == tableName) {
+			return indexValues[i];
+		}
+	}
+	return -1;
+}
+string Index::getIndexColumnName(const string& indexName) const {
+	for (int i = 0; i < noIndexeNames; i++) {
+		if (indexNames[i] == indexName) {
+			return columnNames[i];
+		}
+	}
+	return "";
+}
+string Index::getIndexTableName(const string& indexName) const {
+	for (int i = 0; i < noIndexeNames; i++) {
+		if (indexNames[i] == indexName) {
+			return tableNames[i];
+		}
+	}
+	return "";
+}
 
 void Index::addIndex(const string& indexName, int indexValue, const string& columnName, const string& tableName) {
 	string* newIndexNames = new string[noIndexeNames + 1];
@@ -271,32 +302,6 @@ bool Index::indexExistsByTableName(const string& tableName) const {
 		}
 	}
 	return false;
-}
-
-int Index::getIndexValue(const string& columnName, const string& tableName) const {
-	for (int i = 0; i < noColumnNames; i++) {
-		if (columnNames[i] == columnName && tableNames[i] == tableName) {
-			return indexValues[i];
-		}
-	}
-	return -1;
-}
-
-string Index::getIndexColumnName(const string& indexName) const {
-	for (int i = 0; i < noIndexeNames; i++) {
-		if (indexNames[i] == indexName) {
-			return columnNames[i];
-		}
-	}
-	return "";
-}
-string Index::getIndexTableName(const string& indexName) const {
-	for (int i = 0; i < noIndexeNames; i++) {
-		if (indexNames[i] == indexName) {
-			return tableNames[i];
-		}
-	}
-	return "";
 }
 
 void Index::showIndexesByTableName(const string& tableName) const {
