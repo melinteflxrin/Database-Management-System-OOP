@@ -11,6 +11,9 @@
 
 using namespace std;
 
+//clasa pt fiecare comanda (parametrii functiilor devin atribute la private gen)
+//toate clasele au o metoda execute care are ca parametru &Database db
+
 class Database {          //many tables
 private:
 	Table** database = nullptr;
@@ -994,6 +997,7 @@ public:
 		cout << endl << "My Indexes:";
 		indexes->showAllIndexes();
 	}
+	//ALTA CLASA PT ASTEA 2
 	void printHelpMenu() {
 		string commands[] = {
 			"CREATE TABLE",
@@ -1109,6 +1113,7 @@ public:
 		std::cout << "================================================================\n";
 	}
 	//--------------------------------------------------
+	//astea raman
 	void saveDatabase(const string& tablesConfigAddress) const {
 		for (int i = 0; i < noTables; i++) {
 			const Table& table = *database[i];
@@ -1299,7 +1304,9 @@ public:
 
 int Database::selectCount = 0;
 
-class Commands {
+class Commands { //doar daca e comanda scrisa cum trebuie
+	//VERIFIC DACA ARE FORMATU BUN LA COMANDA SI GENEREAZA UN OBIECT SPECIFIC COMENZII INTRODUSE
+	//NIMIC LA MEMBRI
 private:
 	Database* db = nullptr;
 	//HELPER FUNCTIONS----------------------------------
@@ -2528,7 +2535,10 @@ public:
 	void handleCommand(const string& command, const string& tablesConfigAddress, const string& selectCommandsAddress) {
 		//detect and handle the command accordingly
 		if (containsWord(command, "CREATE") && containsWord(command, "TABLE")) {
-			stringCommandCreateTable(command);
+			stringCommandCreateTable(command);//verific daca are formatu bun si creez un obiect tip CREATE TABLE de ex (return an object)
+			//if syntaxa e buna
+			//creez obiect si returnez
+			//functie validare sintaxsa in fiecare clasa STATICA
 		}
 		else if (containsWord(command, "DESCRIBE")) {
 			stringCommandDescribe(command);
@@ -2588,6 +2598,8 @@ public:
 			cout << "Unknown command." << endl;
 		}
 	}
+	//parse command
+	//execute command
 };
 
 class FileManager {
@@ -2648,7 +2660,9 @@ int main() {
 		if (userCommand == "exit") {
 			break;
 		}
-
+		//command parser
+		//command cmd = commandParses.handleCommand(userCommand);
+		//cmd.execute(db);
 		commands.handleCommand(userCommand, FileManager::TABLES_CONFIG_ADDRESS, FileManager::SELECT_COMMANDS_ADDRESS);
 	}
 
