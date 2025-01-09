@@ -27,9 +27,6 @@
     <ClCompile Include="TableNames.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Index.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ValidateDataType.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -45,9 +42,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TableNames.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Index.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ValidateDataType.h">

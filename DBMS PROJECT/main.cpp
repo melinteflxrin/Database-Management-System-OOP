@@ -6,13 +6,330 @@
 #include "Column.h"
 #include "Row.h"
 #include "TableNames.h"
-#include "Index.h"
 #include "Table.h"
 
 using namespace std;
 
-//clasa pt fiecare comanda (parametrii functiilor devin atribute la private gen)
-//toate clasele au o metoda execute care are ca parametru &Database db
+class Index {
+private:
+	std::string columnName; // Name of the indexed column
+	std::string indexName;  // Name of the index
+	std::string tableName;  // Name of the table
+	struct IndexEntry {
+		std::string value;   // Value from the indexed column
+		int* rowPointers;    // Array of row pointers
+		int pointerCount;    // Number of pointers (to handle duplicates)
+	};
+	IndexEntry* entries; // Array of index entries
+	int entryCount;      // Number of entries in the index
+
+public:
+	// Helper function to find an entry by value
+	int findEntryIndex(const std::string& value) const {
+		for (int i = 0; i < entryCount; ++i) {
+			if (entries[i].value == value) {
+				return i;
+			}
+		}
+		return -1; // Not found
+	}
+	//GETTERS
+	std::string getColumnName() const {
+		return columnName;
+	}
+	std::string getIndexName() const {
+		return indexName;
+	}
+	std::string getTableName() const {
+		return tableName;
+	}
+	Index(const std::string& indexName, const std::string& columnName, const std::string& tableName)
+		: indexName(indexName), columnName(columnName), tableName(tableName), entries(nullptr), entryCount(0) {}
+
+	~Index() {
+		for (int i = 0; i < entryCount; ++i) {
+			delete[] entries[i].rowPointers;
+		}
+		delete[] entries;
+	}
+
+	// Copy constructor
+	Index(const Index& other)
+		: columnName(other.columnName), indexName(other.indexName), tableName(other.tableName), entryCount(other.entryCount) {
+		entries = new IndexEntry[entryCount];
+		for (int i = 0; i < entryCount; ++i) {
+			entries[i] = other.entries[i];
+			entries[i].rowPointers = new int[entries[i].pointerCount];
+			for (int j = 0; j < entries[i].pointerCount; ++j) {
+				entries[i].rowPointers[j] = other.entries[i].rowPointers[j];
+			}
+		}
+	}
+
+	// Copy assignment operator
+	Index& operator=(const Index& other) {
+		if (this == &other) {
+			return *this;
+		}
+
+		// Clean up existing resources
+		for (int i = 0; i < entryCount; ++i) {
+			delete[] entries[i].rowPointers;
+		}
+		delete[] entries;
+
+		// Copy new resources
+		columnName = other.columnName;
+		indexName = other.indexName;
+		tableName = other.tableName;
+		entryCount = other.entryCount;
+		entries = new IndexEntry[entryCount];
+		for (int i = 0; i < entryCount; ++i) {
+			entries[i] = other.entries[i];
+			entries[i].rowPointers = new int[entries[i].pointerCount];
+			for (int j = 0; j < entries[i].pointerCount; ++j) {
+				entries[i].rowPointers[j] = other.entries[i].rowPointers[j];
+			}
+		}
+
+		return *this;
+	}
+
+	void addEntry(const std::string& value, int rowPointer) {
+		int index = findEntryIndex(value);
+		if (index != -1) {
+			// Append the new row pointer to existing pointers
+			int* newPointers = new int[entries[index].pointerCount + 1];
+			for (int j = 0; j < entries[index].pointerCount; ++j) {
+				newPointers[j] = entries[index].rowPointers[j];
+			}
+			newPointers[entries[index].pointerCount] = rowPointer;
+			delete[] entries[index].rowPointers;
+			entries[index].rowPointers = newPointers;
+			entries[index].pointerCount++;
+		}
+		else {
+			// If value doesn't exist, add a new entry
+			IndexEntry* newEntries = new IndexEntry[entryCount + 1];
+			for (int i = 0; i < entryCount; ++i) {
+				newEntries[i] = entries[i];
+			}
+			newEntries[entryCount].value = value;
+			newEntries[entryCount].rowPointers = new int[1];
+			newEntries[entryCount].rowPointers[0] = rowPointer;
+			newEntries[entryCount].pointerCount = 1;
+			delete[] entries;
+			entries = newEntries;
+			entryCount++;
+		}
+	}
+
+	void displayIndex() const {
+		std::cout << "Index: " << indexName << " on Column: " << columnName << " in Table: " << tableName << "\n";
+		for (int i = 0; i < entryCount; ++i) {
+			std::cout << "Value: " << entries[i].value << " -> Rows: ";
+			for (int j = 0; j < entries[i].pointerCount; ++j) {
+				std::cout << entries[i].rowPointers[j] << " ";
+			}
+			std::cout << "\n";
+		}
+	}
+
+	int* getRows(const std::string& value, int& rowCount) const {
+		int index = findEntryIndex(value);
+		if (index != -1) {
+			rowCount = entries[index].pointerCount; // Use pointerCount from your IndexEntry structure
+			int* rowCopy = new int[rowCount];  // Dynamically allocate memory for the copy
+			for (int i = 0; i < rowCount; ++i) {
+				rowCopy[i] = entries[index].rowPointers[i]; // Copy each row pointer
+			}
+			return rowCopy; // Return the dynamically allocated array
+		}
+		rowCount = 0; // No rows found
+		return nullptr;
+	}
+
+	// Function to get the count of rows that match a specific value
+	int getRowCount(const std::string& value) const {
+		int index = findEntryIndex(value);
+		if (index != -1) {
+			return entries[index].pointerCount;
+		}
+		return 0;
+	}
+};
+
+class IndexManager {
+private:
+	Index** indexObjects; // Dynamic array to store Index objects
+	int noIndexes;
+
+public:
+	// DESTRUCTOR
+	~IndexManager() {
+		for (int i = 0; i < noIndexes; ++i) {
+			delete indexObjects[i];
+		}
+		delete[] indexObjects;
+	}
+
+	// DEFAULT CONSTRUCTOR
+	IndexManager() : indexObjects(nullptr), noIndexes(0) {}
+
+	// ASSIGNMENT OPERATOR
+	IndexManager& operator=(const IndexManager& original) {
+		if (this == &original) return *this;
+
+		for (int i = 0; i < noIndexes; ++i) {
+			delete indexObjects[i];
+		}
+		delete[] indexObjects;
+
+		noIndexes = original.noIndexes;
+		indexObjects = new Index * [noIndexes];
+		for (int i = 0; i < noIndexes; ++i) {
+			indexObjects[i] = new Index(*original.indexObjects[i]);
+		}
+
+		return *this;
+	}
+
+	// COPY CONSTRUCTOR
+	IndexManager(const IndexManager& original) : noIndexes(original.noIndexes) {
+		indexObjects = new Index * [noIndexes];
+		for (int i = 0; i < noIndexes; ++i) {
+			indexObjects[i] = new Index(*original.indexObjects[i]);
+		}
+	}
+
+	void addIndex(const string& indexName, const string& columnName, const string& tableName) {
+		Index** newIndexObjects = new Index * [noIndexes + 1];
+		for (int i = 0; i < noIndexes; ++i) {
+			newIndexObjects[i] = indexObjects[i];
+		}
+		newIndexObjects[noIndexes] = new Index(indexName, columnName, tableName);
+		delete[] indexObjects;
+		indexObjects = newIndexObjects;
+		noIndexes++;
+	}
+
+	void addIndexObject(const string& indexName, Index* index) {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getIndexName() == indexName) {
+				delete indexObjects[i];
+				indexObjects[i] = index;
+				break;
+			}
+		}
+	}
+
+	void removeIndex(const string& indexName) {
+		int indexToRemove = -1;
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getIndexName() == indexName) {
+				indexToRemove = i;
+				break;
+			}
+		}
+
+		if (indexToRemove == -1) return;
+
+		delete indexObjects[indexToRemove];
+
+		for (int i = indexToRemove; i < noIndexes - 1; ++i) {
+			indexObjects[i] = indexObjects[i + 1];
+		}
+
+		noIndexes--;
+		Index** newIndexObjects = new Index * [noIndexes];
+		for (int i = 0; i < noIndexes; ++i) {
+			newIndexObjects[i] = indexObjects[i];
+		}
+		delete[] indexObjects;
+		indexObjects = newIndexObjects;
+	}
+
+	bool indexExists(const string& indexName) const {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getIndexName() == indexName) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool indexExistsByTableName(const string& tableName) const {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getTableName() == tableName) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool indexExistsByTableNameAndColumnName(const string& tableName, const string& columnName) const {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getTableName() == tableName && indexObjects[i]->getColumnName() == columnName) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void removeIndexByTableName(const string& tableName) {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getTableName() == tableName) {
+				removeIndex(indexObjects[i]->getIndexName());
+				i--; // Adjust index after removal
+			}
+		}
+	}
+
+	string getIndexTableName(const string& indexName) const {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getIndexName() == indexName) {
+				return indexObjects[i]->getTableName();
+			}
+		}
+		return "";
+	}
+
+	string getIndexColumnName(const string& indexName) const {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getIndexName() == indexName) {
+				return indexObjects[i]->getColumnName();
+			}
+		}
+		return "";
+	}
+
+	Index* getIndexObjectByTableNameAndColumnName(const string& tableName, const string& columnName) const {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getTableName() == tableName && indexObjects[i]->getColumnName() == columnName) {
+				return indexObjects[i];
+			}
+		}
+		return nullptr;
+	}
+
+	void showIndexesByTableName(const string& tableName) const {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexObjects[i]->getTableName() == tableName) {
+				cout << "Index: " << indexObjects[i]->getIndexName() << " on Column: " << indexObjects[i]->getColumnName() << "\n";
+			}
+		}
+	}
+
+	void showAllIndexes() const {
+		for (int i = 0; i < noIndexes; ++i) {
+			cout << "Index: " << indexObjects[i]->getIndexName() << " on Column: " << indexObjects[i]->getColumnName() << " in Table: " << indexObjects[i]->getTableName() << "\n";
+		}
+	}
+
+	int getSize() const {
+		return noIndexes;
+	}
+};
 
 class Database {          //many tables
 private:
@@ -20,7 +337,7 @@ private:
 	int noTables = 0;
 
 	TableNames* tableNames = nullptr;
-	Index* indexes = nullptr;
+	IndexManager* indexes = nullptr;
 
 	static int selectCount;
 
@@ -75,7 +392,7 @@ public:
 		this->tableNames = nullptr;
 		this->tableNames = new TableNames();
 		this->indexes = nullptr;
-		this->indexes = new Index();
+		this->indexes = new IndexManager();
 	}
 	//DESTRUCTOR
 	~Database() {
@@ -223,65 +540,6 @@ public:
 		//add the row
 		table->addRow(values);
 	}
-	void deleteRowFromTable(const string& name, const string& columnName, const string& value) {
-		if (!tableExists(name)) {
-			cout << endl << "Error: Table: " << "'" << name << "'" << " does not exist.";
-			return;
-		}
-
-		int tableIndex = getTableIndex(name);
-		Table* table = database[tableIndex];
-
-		int columnIndex = 0;
-		bool hasIndex = indexes->indexExists(columnName, name);
-		if (hasIndex) {
-			columnIndex = indexes->getIndexValue(columnName, name);
-			if (!table->columnExistsByIndex(columnIndex)) {
-				cout << endl << "Error: Column with index '" << columnIndex << "' does not exist in table '" << name << "'.";
-				return;
-			}
-		}
-		else {
-			if (!table->columnExists(columnName)) {
-				cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << name << "'.";
-				return;
-			}
-			columnIndex = table->getColumnIndex(columnName);
-		}
-
-		ColumnType columnType = table->getColumn(columnName).getType();
-
-		//delete the row
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			switch (columnType) {
-			case INT:
-				if (row.getIntData(columnIndex) == stoi(value)) {
-					table->deleteRow(i);
-					cout << endl << "Row deleted successfully.";
-					return;
-				}
-				break;
-			case TEXT:
-				if (row.getTextData(columnIndex) == value) {
-					table->deleteRow(i);
-					cout << endl << "Row deleted successfully.";
-					return;
-				}
-				break;
-			case FLOAT:
-				if (row.getFloatData(columnIndex) == stof(value)) {
-					table->deleteRow(i);
-					cout << endl << "Row deleted successfully.";
-					return;
-				}
-				break;
-			default:
-				cout << endl << "Error: Unsupported column type.";
-			}
-		}
-		cout << endl << "Error: Row with value '" << value << "' not found in column '" << columnName << "'.";
-	}
 	void selectALL(const string& name, const string& selectCommandsAddress) const {
 		if (!tableExists(name)) {
 			cout << endl << "Error: Table: " << "'" << name << "'" << " does not exist.";
@@ -311,631 +569,206 @@ public:
 		//also display on the screen
 		database[index]->displayTable();
 	}
+	//HELPER FUNCTIONS FOR SELECT WHERE
+	bool rowMatchesCondition(const Row& row, const Column& conditionColumn, int conditionColumnIndex, const std::string& value) {
+		// Assuming the Row class has a method to get the value of a column by index
+		std::string rowValue = row.getTextData(conditionColumnIndex);
+
+		// Compare the row value with the given value
+		return rowValue == value;
+	}
+	void printRow(const Row& row, const Table* table, const int* columnIndexes, int noColumns, const int* maxWidth) {
+		for (int i = 0; i < noColumns; ++i) {
+			int columnIndex = columnIndexes[i];
+			std::string value = row.getTextData(columnIndex); // Assuming Row has a getValue method
+			std::cout << std::left << std::setw(maxWidth[i]) << value << " | ";
+		}
+		std::cout << std::endl;
+	}
+	int* calculateMaxWidths(const Table* table, const std::string* columnNames, int noColumns, const int* columnIndexes) {
+		int* maxWidth = new int[noColumns];
+
+		// Initialize maxWidth with the length of the column names
+		for (int i = 0; i < noColumns; ++i) {
+			maxWidth[i] = columnNames[i].length();
+		}
+
+		// Iterate through each row in the table
+		for (int i = 0; i < table->getNoRows(); ++i) {
+			const Row& row = table->getRow(i);
+
+			// Update maxWidth based on the length of the data in each column
+			for (int j = 0; j < noColumns; ++j) {
+				int columnIndex = columnIndexes[j];
+				std::string value = row.getTextData(columnIndex); // Assuming Row has a getValue method
+				if (value.length() > maxWidth[j]) {
+					maxWidth[j] = value.length();
+				}
+			}
+		}
+
+		return maxWidth;
+	}
+	bool validateColumn(const Table* table, const std::string& columnName, int& columnIndex) {
+		for (int i = 0; i < table->getNoColumns(); ++i) {
+			if (table->getColumn(i).getName() == columnName) {
+				columnIndex = i;
+				return true;
+			}
+		}
+		std::cout << "Error: Column '" << columnName << "' does not exist in table '" << table->getName() << "'." << std::endl;
+		return false;
+	}
+	bool validateColumns(const Table* table, const std::string* columnNames, int noColumns, int* columnIndexes) {
+		for (int i = 0; i < noColumns; ++i) {
+			if (!validateColumn(table, columnNames[i], columnIndexes[i])) {
+				std::cout << "Error: Column '" << columnNames[i] << "' does not exist in table '" << table->getName() << "'." << std::endl;
+				return false;
+			}
+		}
+		return true;
+	}
+	void printHeader(const std::string* columnNames, const int* maxWidth, int noColumns) {
+		for (int i = 0; i < noColumns; ++i) {
+			std::cout << std::left << std::setw(maxWidth[i]) << columnNames[i] << " | ";
+		}
+		std::cout << std::endl;
+	}
+	void printSeparator(const int* maxWidth, int noColumns) {
+		for (int i = 0; i < noColumns; ++i) {
+			std::cout << std::string(maxWidth[i], '-') << "-+-";
+		}
+		std::cout << std::endl;
+	}
 	void selectWHERE(const string& tableName, const string* columnNames, int noColumns, const string& conditionColumn, const string& value, const string& selectCommandsAddress) {
 		selectCount++;
 
+		// Validate table existence
 		if (!tableExists(tableName)) {
-			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			cout << "Error: Table '" << tableName << "' does not exist." << endl;
 			return;
 		}
 
-		int tableIndex = getTableIndex(tableName);
-		Table* table = database[tableIndex];
+		Table* table = database[getTableIndex(tableName)];
 
+		// Validate column existence and initialize indexes
 		int* columnIndexes = new int[noColumns];
-		int conditionColumnIndex;
-
-		//check if all specified columns and the condition column exist in the table
-		for (int i = 0; i < noColumns; i++) {
-			if (indexes->indexExists(columnNames[i], tableName)) {
-				columnIndexes[i] = indexes->getIndexValue(columnNames[i], tableName);
-				if (!table->columnExistsByIndex(columnIndexes[i])) {
-					cout << endl << "Error: Column with index '" << columnIndexes[i] << "' does not exist in table '" << tableName << "'.";
-					delete[] columnIndexes;
-					return;
-				}
-			}
-			else {
-				if (!table->columnExists(columnNames[i])) {
-					cout << endl << "Error: Column '" << columnNames[i] << "' does not exist in table '" << tableName << "'.";
-					delete[] columnIndexes;
-					return;
-				}
-				columnIndexes[i] = table->getColumnIndex(columnNames[i]);
-			}
-		}
-
-		if (indexes->indexExists(conditionColumn, tableName)) {
-			conditionColumnIndex = indexes->getIndexValue(conditionColumn, tableName);
-			if (!table->columnExistsByIndex(conditionColumnIndex)) {
-				cout << endl << "Error: Condition column with index '" << conditionColumnIndex << "' does not exist in table '" << tableName << "'.";
-				delete[] columnIndexes;
-				return;
-			}
-		}
-		else {
-			if (!table->columnExists(conditionColumn)) {
-				cout << endl << "Error: Condition column '" << conditionColumn << "' does not exist in table '" << tableName << "'.";
-				delete[] columnIndexes;
-				return;
-			}
-			conditionColumnIndex = table->getColumnIndex(conditionColumn);
-		}
-
-		//calculate the maximum width for each column
-		int* maxWidth = new int[noColumns];
-		for (int i = 0; i < noColumns; i++) {
-			maxWidth[i] = columnNames[i].length();
-		}
-
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			for (int j = 0; j < noColumns; j++) {
-				int currentLength = 0;
-				const Column& column = table->getColumn(columnNames[j]);
-
-				if (column.getType() == INT) {
-					currentLength = to_string(row.getIntData(columnIndexes[j])).length();
-				}
-				else if (column.getType() == TEXT) {
-					currentLength = row.getTextData(columnIndexes[j]).length();
-				}
-				else if (column.getType() == FLOAT) {
-					float value = row.getFloatData(columnIndexes[j]);
-					string floatStr = to_string(value);
-					size_t dotPos = floatStr.find('.');
-					if (dotPos != string::npos) {
-						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal places
-					}
-					currentLength = floatStr.length();
-				}
-
-				if (currentLength > maxWidth[j]) {
-					maxWidth[j] = currentLength;
-				}
-			}
-		}
-
-		//calculate the total width of the table
-		int totalWidth = 0;
-		for (int i = 0; i < noColumns; i++) {
-			totalWidth += maxWidth[i] + 8;  //add 8 for padding between columns
-		}
-
-		//check if any rows match the condition
-		bool valueFound = false;
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			bool found = true;
-			const Column& conditionCol = table->getColumn(conditionColumn);
-			switch (conditionCol.getType()) {
-			case INT:
-				if (row.getIntData(conditionColumnIndex) != stoi(value)) {
-					found = false;
-				}
-				break;
-			case TEXT:
-				if (row.getTextData(conditionColumnIndex) != value) {
-					found = false;
-				}
-				break;
-			case FLOAT:
-				if (row.getFloatData(conditionColumnIndex) != stof(value)) {
-					found = false;
-				}
-				break;
-			default:
-				found = false;
-			}
-
-			if (found) {
-				valueFound = true;
-				break;
-			}
-		}
-
-		if (!valueFound) {
-			cout << "No rows found with " << conditionColumn << " = " << value << endl;
+		if (!validateColumns(table, columnNames, noColumns, columnIndexes)) {
 			delete[] columnIndexes;
-			delete[] maxWidth;
 			return;
 		}
 
-		//redirect cout to a file
+		int conditionColumnIndex;
+		if (!validateColumn(table, conditionColumn, conditionColumnIndex)) {
+			delete[] columnIndexes;
+			return;
+		}
+
+		// Check for an index on the condition column
+		bool useIndex = false;
+		Index* index = nullptr;
+
+		bool indexExists = indexes->indexExistsByTableName(tableName);
+		cout << "Index exists: " << indexExists << " for table: " << tableName << endl;
+
+		// Check if the column name matches the indexed column name
+		string indexedColumnName = indexes->getIndexColumnName(conditionColumn);
+		cout << "Index column name: " << indexedColumnName << ", condition column: " << conditionColumn << endl;
+
+		if (indexExists && indexedColumnName == conditionColumn) {
+			useIndex = true;
+			// Retrieve the existing index from the IndexManager
+			index = indexes->getIndexObjectByTableNameAndColumnName(tableName, conditionColumn);
+			cout << "Index check: " << tableName << " - " << conditionColumn << endl;
+		}
+
+		// Calculate column widths
+		int* maxWidth = calculateMaxWidths(table, columnNames, noColumns, columnIndexes);
+
+		// Redirect cout to a file
 		string fileName = selectCommandsAddress + "SELECT_" + to_string(selectCount) + ".txt";
 		ofstream outFile(fileName);
-		streambuf* coutBuf = cout.rdbuf(); //save old buffer
-		cout.rdbuf(outFile.rdbuf()); //redirect cout to file
+		streambuf* coutBuf = cout.rdbuf();
+		cout.rdbuf(outFile.rdbuf());
 
-		//print the separator line
-		cout << endl << string(totalWidth, '-') << endl;
+		// Print headers and rows to file
+		printSeparator(maxWidth, noColumns);
+		printHeader(columnNames, maxWidth, noColumns);
+		printSeparator(maxWidth, noColumns);
 
-		//print column headers
-		for (int i = 0; i < noColumns; i++) {
-			cout << columnNames[i];
-			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
-				cout << " ";
+		// Fetch rows based on condition, using index if available
+		bool found = false;
+		if (useIndex) {
+			int rowCount;
+			int* indexedRows = index->getRows(value, rowCount);
+
+			for (int i = 0; i < rowCount; i++) {
+				const Row& row = table->getRow(indexedRows[i]);
+				printRow(row, table, columnIndexes, noColumns, maxWidth);
+				found = true;
 			}
-			cout << string(8, ' ');  // 8 spaces between columns
+			delete[] indexedRows; // Clean up dynamically allocated array
 		}
-		cout << endl << string(totalWidth, '-') << endl;
-
-		//print rows that match the condition
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			bool found = true;
-			const Column& conditionCol = table->getColumn(conditionColumn);
-			switch (conditionCol.getType()) {
-			case INT:
-				if (row.getIntData(conditionColumnIndex) != stoi(value)) {
-					found = false;
+		else {
+			for (int i = 0; i < table->getNoRows(); i++) {
+				const Row& row = table->getRow(i);
+				if (rowMatchesCondition(row, table->getColumn(conditionColumnIndex), conditionColumnIndex, value)) {
+					printRow(row, table, columnIndexes, noColumns, maxWidth);
+					found = true;
 				}
-				break;
-			case TEXT:
-				if (row.getTextData(conditionColumnIndex) != value) {
-					found = false;
-				}
-				break;
-			case FLOAT:
-				if (row.getFloatData(conditionColumnIndex) != stof(value)) {
-					found = false;
-				}
-				break;
-			default:
-				found = false;
-			}
-
-			if (found) {
-				for (int j = 0; j < noColumns; j++) {
-					const Column& column = table->getColumn(columnNames[j]);
-					string dataToString;
-					if (column.getType() == INT) {
-						dataToString = to_string(row.getIntData(columnIndexes[j]));
-					}
-					else if (column.getType() == TEXT) {
-						dataToString = row.getTextData(columnIndexes[j]);
-					}
-					else if (column.getType() == FLOAT) {
-						float value = row.getFloatData(columnIndexes[j]);
-						string floatStr = to_string(value);
-						size_t dotPos = floatStr.find('.');
-						if (dotPos != string::npos) {
-							floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal
-						}
-						dataToString = floatStr;
-					}
-					else {
-						dataToString = "N/A";  // BOOLEAN and DATE
-					}
-
-					cout << dataToString;
-					for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
-						cout << " ";
-					}
-					cout << string(8, ' ');  // 8 spaces between columns
-				}
-				cout << endl;
 			}
 		}
 
-		//print the separator line at the end
-		cout << string(totalWidth, '-') << endl;
-
-		//restore cout to its original state
-		cout.rdbuf(coutBuf);
-
-		//also display on the screen
-		cout << endl << string(totalWidth, '-') << endl;
-		for (int i = 0; i < noColumns; i++) {
-			cout << columnNames[i];
-			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
-				cout << " ";
-			}
-			cout << string(8, ' ');  // 8 spaces between columns
-		}
-		cout << endl << string(totalWidth, '-') << endl;
-
-		valueFound = false;
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			bool found = true;
-			const Column& conditionCol = table->getColumn(conditionColumn);
-			switch (conditionCol.getType()) {
-			case INT:
-				if (row.getIntData(conditionColumnIndex) != stoi(value)) {
-					found = false;
-				}
-				break;
-			case TEXT:
-				if (row.getTextData(conditionColumnIndex) != value) {
-					found = false;
-				}
-				break;
-			case FLOAT:
-				if (row.getFloatData(conditionColumnIndex) != stof(value)) {
-					found = false;
-				}
-				break;
-			default:
-				found = false;
-			}
-
-			if (found) {
-				valueFound = true;
-				for (int j = 0; j < noColumns; j++) {
-					const Column& column = table->getColumn(columnNames[j]);
-					string dataToString;
-					if (column.getType() == INT) {
-						dataToString = to_string(row.getIntData(columnIndexes[j]));
-					}
-					else if (column.getType() == TEXT) {
-						dataToString = row.getTextData(columnIndexes[j]);
-					}
-					else if (column.getType() == FLOAT) {
-						float value = row.getFloatData(columnIndexes[j]);
-						string floatStr = to_string(value);
-						size_t dotPos = floatStr.find('.');
-						if (dotPos != string::npos) {
-							floatStr = floatStr.substr(0, dotPos + 3);  // two decimal
-						}
-						dataToString = floatStr;
-					}
-					else {
-						dataToString = "N/A";  // BOOLEAN and DATE
-					}
-
-					cout << dataToString;
-					for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
-						cout << " ";
-					}
-					cout << string(8, ' ');  // 8 spaces between columns
-				}
-				cout << endl;
-			}
-		}
-
-		if (!valueFound) {
+		if (!found) {
 			cout << "No rows found with " << conditionColumn << " = " << value << endl;
 		}
 
-		cout << string(totalWidth, '-') << endl;
+		printSeparator(maxWidth, noColumns);
 
-		delete[] columnIndexes;
-		delete[] maxWidth;
-	}
-	void selectColumns(const string& tableName, const string* columnNames, int noColumns, const string& selectCommandsAddress) const {
-		if (!tableExists(tableName)) {
-			cout << endl << "Error: Table '" << tableName << "' does not exist.";
-			return;
-		}
-
-		int tableIndex = getTableIndex(tableName);
-		Table* table = database[tableIndex];
-
-		int* columnIndexes = new int[noColumns];
-
-		//check if all specified columns exist in the table
-		for (int i = 0; i < noColumns; i++) {
-			if (indexes->indexExists(columnNames[i], tableName)) {
-				columnIndexes[i] = indexes->getIndexValue(columnNames[i], tableName);
-				if (!table->columnExistsByIndex(columnIndexes[i])) {
-					cout << endl << "Error: Column with index '" << columnIndexes[i] << "' does not exist in table '" << tableName << "'.";
-					delete[] columnIndexes;
-					return;
-				}
-			}
-			else {
-				if (!table->columnExists(columnNames[i])) {
-					cout << endl << "Error: Column '" << columnNames[i] << "' does not exist in table '" << tableName << "'.";
-					delete[] columnIndexes;
-					return;
-				}
-				columnIndexes[i] = table->getColumnIndex(columnNames[i]);
-			}
-		}
-
-		//calculate the maximum width for each column
-		int* maxWidth = new int[noColumns];
-		for (int i = 0; i < noColumns; i++) {
-			maxWidth[i] = columnNames[i].length();
-		}
-
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			for (int j = 0; j < noColumns; j++) {
-				int currentLength = 0;
-				const Column& column = table->getColumn(columnNames[j]);
-
-				if (column.getType() == INT) {
-					currentLength = to_string(row.getIntData(columnIndexes[j])).length();
-				}
-				else if (column.getType() == TEXT) {
-					currentLength = row.getTextData(columnIndexes[j]).length();
-				}
-				else if (column.getType() == FLOAT) {
-					float value = row.getFloatData(columnIndexes[j]);
-					string floatStr = to_string(value);
-					size_t dotPos = floatStr.find('.');
-					if (dotPos != string::npos) {
-						floatStr = floatStr.substr(0, dotPos + 3);  //two decimal
-					}
-					currentLength = floatStr.length();
-				}
-
-				if (currentLength > maxWidth[j]) {
-					maxWidth[j] = currentLength;
-				}
-			}
-		}
-
-		//calculate the total width of the table
-		int totalWidth = 0;
-		for (int i = 0; i < noColumns; i++) {
-			totalWidth += maxWidth[i] + 8;  //add 8 for padding between columns
-		}
-
-		//find a unique file name
-		string fileName;
-		do {
-			selectCount++;
-			fileName = selectCommandsAddress + "SELECT_" + to_string(selectCount) + ".txt";
-		} while (filesystem::exists(fileName));
-
-		//redirect cout to a file
-		ofstream outFile(fileName);
-		streambuf* coutBuf = cout.rdbuf(); //save old buffer
-		cout.rdbuf(outFile.rdbuf()); //redirect cout to file
-
-		//print the separator line
-		string separatorLine(totalWidth, '-');
-		cout << endl << separatorLine << endl;
-
-		//print column headers
-		for (int i = 0; i < noColumns; i++) {
-			cout << columnNames[i];
-			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
-				cout << " ";
-			}
-			cout << string(8, ' ');  //add 8 spaces between columns
-		}
-		cout << endl << separatorLine << endl;
-
-		//print rows
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			for (int j = 0; j < noColumns; j++) {
-				const Column& column = table->getColumn(columnNames[j]);
-				string dataToString;
-				if (column.getType() == INT) {
-					dataToString = to_string(row.getIntData(columnIndexes[j]));
-				}
-				else if (column.getType() == TEXT) {
-					dataToString = row.getTextData(columnIndexes[j]);
-				}
-				else if (column.getType() == FLOAT) {
-					float value = row.getFloatData(columnIndexes[j]);
-					string floatStr = to_string(value);
-					size_t dotPos = floatStr.find('.');
-					if (dotPos != string::npos) {
-						floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal
-					}
-					dataToString = floatStr;
-				}
-				else {
-					dataToString = "N/A";  // For BOOLEAN and DATE
-				}
-
-				cout << dataToString;
-				for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
-					cout << " ";
-				}
-				cout << string(8, ' ');  //add 8 spaces between columns
-			}
-			cout << endl;
-		}
-
-		//print the separator line at the end
-		cout << separatorLine << endl;
-
-		//restore cout to its original state
+		// Restore cout
 		cout.rdbuf(coutBuf);
 
-		//also display on the screen
-		cout << endl << separatorLine << endl;
-		for (int i = 0; i < noColumns; i++) {
-			cout << columnNames[i];
-			for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
-				cout << " ";
-			}
-			cout << string(8, ' ');  //add 8 spaces between columns
-		}
-		cout << endl << separatorLine << endl;
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			for (int j = 0; j < noColumns; j++) {
-				const Column& column = table->getColumn(columnNames[j]);
-				string dataToString;
-				if (column.getType() == INT) {
-					dataToString = to_string(row.getIntData(columnIndexes[j]));
-				}
-				else if (column.getType() == TEXT) {
-					dataToString = row.getTextData(columnIndexes[j]);
-				}
-				else if (column.getType() == FLOAT) {
-					float value = row.getFloatData(columnIndexes[j]);
-					string floatStr = to_string(value);
-					size_t dotPos = floatStr.find('.');
-					if (dotPos != string::npos) {
-						floatStr = floatStr.substr(0, dotPos + 3);  //two decimal
-					}
-					dataToString = floatStr;
-				}
-				else {
-					dataToString = "N/A";  // For BOOLEAN and DATE
-				}
+		// Print headers and rows to screen
+		printSeparator(maxWidth, noColumns);
+		printHeader(columnNames, maxWidth, noColumns);
+		printSeparator(maxWidth, noColumns);
 
-				cout << dataToString;
-				for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
-					cout << " ";
-				}
-				cout << string(8, ' ');  //add 8 spaces between columns
-			}
-			cout << endl;
-		}
-		cout << separatorLine << endl;
+		found = false;
+		if (useIndex) {
+			cout << "Using index" << endl;
+			int rowCount;
+			int* indexedRows = index->getRows(value, rowCount);
 
+			for (int i = 0; i < rowCount; i++) {
+				const Row& row = table->getRow(indexedRows[i]);
+				printRow(row, table, columnIndexes, noColumns, maxWidth);
+				found = true;
+			}
+			delete[] indexedRows; // Clean up dynamically allocated array
+		}
+		else {
+			cout << "Not using index" << endl;
+			for (int i = 0; i < table->getNoRows(); i++) {
+				const Row& row = table->getRow(i);
+				if (rowMatchesCondition(row, table->getColumn(conditionColumnIndex), conditionColumnIndex, value)) {
+					printRow(row, table, columnIndexes, noColumns, maxWidth);
+					found = true;
+				}
+			}
+		}
+
+		if (!found) {
+			cout << "No rows found with " << conditionColumn << " = " << value << endl;
+		}
+
+		printSeparator(maxWidth, noColumns);
+
+		// Cleanup
 		delete[] columnIndexes;
 		delete[] maxWidth;
 	}
-	void updateTable(const string& tableName, const string& setColumnName, const string& setValue, const string& whereColumnName, const string& whereValue) {
-		if (!tableExists(tableName)) {
-			cout << endl << "Error: Table '" << tableName << "' does not exist.";
-			return;
-		}
-
-		int tableIndex = getTableIndex(tableName);
-		Table* table = database[tableIndex];
-
-		int setColumnIndex;
-		int whereColumnIndex;
-
-		bool setColumnHasIndex = indexes->indexExists(setColumnName, tableName);
-		bool whereColumnHasIndex = indexes->indexExists(whereColumnName, tableName);
-
-		if (setColumnHasIndex) {
-			setColumnIndex = indexes->getIndexValue(setColumnName, tableName);
-			if (!table->columnExistsByIndex(setColumnIndex)) {
-				cout << endl << "Error: Column with index '" << setColumnIndex << "' does not exist in table '" << tableName << "'.";
-				return;
-			}
-		}
-		else {
-			if (!table->columnExists(setColumnName)) {
-				cout << endl << "Error: Column '" << setColumnName << "' does not exist in table '" << tableName << "'.";
-				return;
-			}
-			setColumnIndex = table->getColumnIndex(setColumnName);
-		}
-
-		if (whereColumnHasIndex) {
-			whereColumnIndex = indexes->getIndexValue(whereColumnName, tableName);
-			if (!table->columnExistsByIndex(whereColumnIndex)) {
-				cout << endl << "Error: Column with index '" << whereColumnIndex << "' does not exist in table '" << tableName << "'.";
-				return;
-			}
-		}
-		else {
-			if (!table->columnExists(whereColumnName)) {
-				cout << endl << "Error: Column '" << whereColumnName << "' does not exist in table '" << tableName << "'.";
-				return;
-			}
-			whereColumnIndex = table->getColumnIndex(whereColumnName);
-		}
-
-		//check if the set value corresponds with the column type and does not exceed the maximum size
-		ColumnType setColumnType = table->getColumnType(setColumnIndex);
-		int setColumnSize = table->getColumnSize(setColumnIndex);
-
-		try {
-			switch (setColumnType) {
-			case INT: {
-				if (!isValidInt(setValue)) {
-					throw invalid_argument("Set value must be a valid integer.");
-				}
-				if (setValue.size() > setColumnSize) {
-					throw invalid_argument("Set value exceeds the maximum size for the integer column.");
-				}
-				break;
-			}
-			case FLOAT: {
-				if (!isValidFloat(setValue)) {
-					throw invalid_argument("Set value must be a valid float.");
-				}
-				if (setValue.size() > setColumnSize) {
-					throw invalid_argument("Set value exceeds the maximum size for the float column.");
-				}
-				break;
-			}
-			case TEXT:
-				if (setValue.size() > setColumnSize) {
-					throw invalid_argument("Set value exceeds the maximum size for the text column.");
-				}
-				break;
-			default:
-				throw invalid_argument("Unsupported column type.");
-			}
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << "Error: " << e.what();
-			return;
-		}
-
-		//update rows
-		int updatedRows = 0;
-		for (int i = 0; i < table->getNoRows(); i++) {
-			Row& row = table->getRow(i);
-			if (row.getTextData(whereColumnIndex) == whereValue) {
-				row.setStringData(setColumnIndex, setValue);
-				updatedRows++;
-			}
-		}
-
-		cout << endl << "Updated " << updatedRows << " rows in table '" << tableName << "' by setting " << setColumnName << " to '" << setValue << "' where " << whereColumnName << " is '" << whereValue << "'.";
-	}
-	void alterTableAddColumn(const string& tableName, const Column& newColumn) {
-		if (!tableExists(tableName)) {
-			cout << endl << "Error: Table '" << tableName << "' does not exist.";
-			return;
-		}
-
-		int tableIndex = getTableIndex(tableName);
-		Table* table = database[tableIndex];
-
-		table->addColumn(newColumn);
-
-		cout << endl << "Column '" << newColumn.getName() << "' added to table '" << tableName << "' successfully.";
-	}
-	void alterTableDeleteColumn(const string& tableName, const string& columnName) {
-		//BASICALLY IF I HAVE AN INDEX ON THAT COLUMN I USE FUNCTIONS BASED ON THAT INDEX WHICH ARE FASTER
-		//IF I DONT HAVE AN INDEX I USE FUNCTIONS THAT SEARCH BY NAME EVERY COLUMN
-		if (!tableExists(tableName)) {
-			cout << endl << "Error: Table '" << tableName << "' does not exist.";
-			return;
-		}
-
-		int tableIndex = getTableIndex(tableName);
-		Table* table = database[tableIndex];
-
-		int columnIndex;
-		bool hasIndex = indexes->indexExists(columnName, tableName);
-		if (hasIndex) {
-			columnIndex = indexes->getIndexValue(columnName, tableName);
-			if (!table->columnExistsByIndex(columnIndex)) {
-				cout << endl << "Error: Column with index '" << columnIndex << "' does not exist in table '" << tableName << "'.";
-				return;
-			}
-		}
-		else {
-			if (!table->columnExists(columnName)) {
-				cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << tableName << "'.";
-				return;
-			}
-			columnIndex = table->getColumnIndex(columnName);
-		}
-
-		if (hasIndex) {
-			indexes->removeIndex(columnName, tableName);
-			table->deleteColumnByIndex(columnIndex);
-			cout << endl << "Index on column '" << columnName << "' in table '" << tableName << "' removed successfully.";
-		}
-		else {
-			table->deleteColumn(columnName);
-		}
-
-		cout << endl << "Column '" << columnName << "' deleted from table '" << tableName << "' successfully.";
-	}
 	void createIndex(const string& indexName, const string& columnName, const string& tableName) {
-		if (indexes->indexExistsByIndexName(indexName)) {
+		if (indexes->indexExists(indexName)) {
 			cout << endl << "Error: Index '" << indexName << "' already exists.";
 			return;
 		}
@@ -951,27 +784,454 @@ public:
 			return;
 		}
 
-		if (indexes->indexExists(columnName, tableName)) {
+		if (indexes->indexExistsByTableNameAndColumnName(tableName, columnName)) {
 			cout << endl << "Error: Index for column '" << columnName << "' in table '" << tableName << "' already exists.";
 			return;
 		}
 
 		int columnIndex = table->getColumnIndex(columnName);
-		indexes->addIndex(indexName, columnIndex, columnName, tableName);
+		if (columnIndex == -1) {
+			cout << "Error: Invalid column index." << endl;
+			return;
+		}
 
+		Index* newIndex = new Index(indexName, columnName, tableName);
+		for (int i = 0; i < table->getNoRows(); ++i) {
+			Row& row = table->getRow(i);
+			string value = row.getTextData(columnIndex); // Assuming Row class has a getTextData method
+			newIndex->addEntry(value, i);
+		}
+
+		indexes->addIndexObject(indexName, newIndex);
 		cout << endl << "Index '" << indexName << "' created successfully on column '" << columnName << "' in table '" << tableName << "'.";
 	}
+	//void deleteRowFromTable(const string& name, const string& columnName, const string& value) {
+	//	if (!tableExists(name)) {
+	//		cout << endl << "Error: Table: " << "'" << name << "'" << " does not exist.";
+	//		return;
+	//	}
+
+	//	int tableIndex = getTableIndex(name);
+	//	Table* table = database[tableIndex];
+
+	//	int columnIndex = 0;
+	//	bool hasIndex = indexes->indexExists(columnName, name);
+	//	if (hasIndex) {
+	//		columnIndex = indexes->getIndexValue(columnName, name);
+	//		if (!table->columnExistsByIndex(columnIndex)) {
+	//			cout << endl << "Error: Column with index '" << columnIndex << "' does not exist in table '" << name << "'.";
+	//			return;
+	//		}
+	//	}
+	//	else {
+	//		if (!table->columnExists(columnName)) {
+	//			cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << name << "'.";
+	//			return;
+	//		}
+	//		columnIndex = table->getColumnIndex(columnName);
+	//	}
+
+	//	ColumnType columnType = table->getColumn(columnName).getType();
+
+	//	//delete the row
+	//	for (int i = 0; i < table->getNoRows(); i++) {
+	//		Row& row = table->getRow(i);
+	//		switch (columnType) {
+	//		case INT:
+	//			if (row.getIntData(columnIndex) == stoi(value)) {
+	//				table->deleteRow(i);
+	//				cout << endl << "Row deleted successfully.";
+	//				return;
+	//			}
+	//			break;
+	//		case TEXT:
+	//			if (row.getTextData(columnIndex) == value) {
+	//				table->deleteRow(i);
+	//				cout << endl << "Row deleted successfully.";
+	//				return;
+	//			}
+	//			break;
+	//		case FLOAT:
+	//			if (row.getFloatData(columnIndex) == stof(value)) {
+	//				table->deleteRow(i);
+	//				cout << endl << "Row deleted successfully.";
+	//				return;
+	//			}
+	//			break;
+	//		default:
+	//			cout << endl << "Error: Unsupported column type.";
+	//		}
+	//	}
+	//	cout << endl << "Error: Row with value '" << value << "' not found in column '" << columnName << "'.";
+	//}
+	//}
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+	//
+//
+	//void selectColumns(const string& tableName, const string* columnNames, int noColumns, const string& selectCommandsAddress) const {
+	//	if (!tableExists(tableName)) {
+	//		cout << endl << "Error: Table '" << tableName << "' does not exist.";
+	//		return;
+	//	}
+
+	//	int tableIndex = getTableIndex(tableName);
+	//	Table* table = database[tableIndex];
+
+	//	int* columnIndexes = new int[noColumns];
+
+	//	//check if all specified columns exist in the table
+	//	for (int i = 0; i < noColumns; i++) {
+	//		if (indexes->indexExists(columnNames[i], tableName)) {
+	//			columnIndexes[i] = indexes->getIndexValue(columnNames[i], tableName);
+	//			if (!table->columnExistsByIndex(columnIndexes[i])) {
+	//				cout << endl << "Error: Column with index '" << columnIndexes[i] << "' does not exist in table '" << tableName << "'.";
+	//				delete[] columnIndexes;
+	//				return;
+	//			}
+	//		}
+	//		else {
+	//			if (!table->columnExists(columnNames[i])) {
+	//				cout << endl << "Error: Column '" << columnNames[i] << "' does not exist in table '" << tableName << "'.";
+	//				delete[] columnIndexes;
+	//				return;
+	//			}
+	//			columnIndexes[i] = table->getColumnIndex(columnNames[i]);
+	//		}
+	//	}
+
+	//	//calculate the maximum width for each column
+	//	int* maxWidth = new int[noColumns];
+	//	for (int i = 0; i < noColumns; i++) {
+	//		maxWidth[i] = columnNames[i].length();
+	//	}
+
+	//	for (int i = 0; i < table->getNoRows(); i++) {
+	//		Row& row = table->getRow(i);
+	//		for (int j = 0; j < noColumns; j++) {
+	//			int currentLength = 0;
+	//			const Column& column = table->getColumn(columnNames[j]);
+
+	//			if (column.getType() == INT) {
+	//				currentLength = to_string(row.getIntData(columnIndexes[j])).length();
+	//			}
+	//			else if (column.getType() == TEXT) {
+	//				currentLength = row.getTextData(columnIndexes[j]).length();
+	//			}
+	//			else if (column.getType() == FLOAT) {
+	//				float value = row.getFloatData(columnIndexes[j]);
+	//				string floatStr = to_string(value);
+	//				size_t dotPos = floatStr.find('.');
+	//				if (dotPos != string::npos) {
+	//					floatStr = floatStr.substr(0, dotPos + 3);  //two decimal
+	//				}
+	//				currentLength = floatStr.length();
+	//			}
+
+	//			if (currentLength > maxWidth[j]) {
+	//				maxWidth[j] = currentLength;
+	//			}
+	//		}
+	//	}
+
+	//	//calculate the total width of the table
+	//	int totalWidth = 0;
+	//	for (int i = 0; i < noColumns; i++) {
+	//		totalWidth += maxWidth[i] + 8;  //add 8 for padding between columns
+	//	}
+
+	//	//find a unique file name
+	//	string fileName;
+	//	do {
+	//		selectCount++;
+	//		fileName = selectCommandsAddress + "SELECT_" + to_string(selectCount) + ".txt";
+	//	} while (filesystem::exists(fileName));
+
+	//	//redirect cout to a file
+	//	ofstream outFile(fileName);
+	//	streambuf* coutBuf = cout.rdbuf(); //save old buffer
+	//	cout.rdbuf(outFile.rdbuf()); //redirect cout to file
+
+	//	//print the separator line
+	//	string separatorLine(totalWidth, '-');
+	//	cout << endl << separatorLine << endl;
+
+	//	//print column headers
+	//	for (int i = 0; i < noColumns; i++) {
+	//		cout << columnNames[i];
+	//		for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
+	//			cout << " ";
+	//		}
+	//		cout << string(8, ' ');  //add 8 spaces between columns
+	//	}
+	//	cout << endl << separatorLine << endl;
+
+	//	//print rows
+	//	for (int i = 0; i < table->getNoRows(); i++) {
+	//		Row& row = table->getRow(i);
+	//		for (int j = 0; j < noColumns; j++) {
+	//			const Column& column = table->getColumn(columnNames[j]);
+	//			string dataToString;
+	//			if (column.getType() == INT) {
+	//				dataToString = to_string(row.getIntData(columnIndexes[j]));
+	//			}
+	//			else if (column.getType() == TEXT) {
+	//				dataToString = row.getTextData(columnIndexes[j]);
+	//			}
+	//			else if (column.getType() == FLOAT) {
+	//				float value = row.getFloatData(columnIndexes[j]);
+	//				string floatStr = to_string(value);
+	//				size_t dotPos = floatStr.find('.');
+	//				if (dotPos != string::npos) {
+	//					floatStr = floatStr.substr(0, dotPos + 3);  //keep two decimal
+	//				}
+	//				dataToString = floatStr;
+	//			}
+	//			else {
+	//				dataToString = "N/A";  // For BOOLEAN and DATE
+	//			}
+
+	//			cout << dataToString;
+	//			for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
+	//				cout << " ";
+	//			}
+	//			cout << string(8, ' ');  //add 8 spaces between columns
+	//		}
+	//		cout << endl;
+	//	}
+
+	//	//print the separator line at the end
+	//	cout << separatorLine << endl;
+
+	//	//restore cout to its original state
+	//	cout.rdbuf(coutBuf);
+
+	//	//also display on the screen
+	//	cout << endl << separatorLine << endl;
+	//	for (int i = 0; i < noColumns; i++) {
+	//		cout << columnNames[i];
+	//		for (int j = 0; j < (maxWidth[i] - columnNames[i].length()); j++) {
+	//			cout << " ";
+	//		}
+	//		cout << string(8, ' ');  //add 8 spaces between columns
+	//	}
+	//	cout << endl << separatorLine << endl;
+	//	for (int i = 0; i < table->getNoRows(); i++) {
+	//		Row& row = table->getRow(i);
+	//		for (int j = 0; j < noColumns; j++) {
+	//			const Column& column = table->getColumn(columnNames[j]);
+	//			string dataToString;
+	//			if (column.getType() == INT) {
+	//				dataToString = to_string(row.getIntData(columnIndexes[j]));
+	//			}
+	//			else if (column.getType() == TEXT) {
+	//				dataToString = row.getTextData(columnIndexes[j]);
+	//			}
+	//			else if (column.getType() == FLOAT) {
+	//				float value = row.getFloatData(columnIndexes[j]);
+	//				string floatStr = to_string(value);
+	//				size_t dotPos = floatStr.find('.');
+	//				if (dotPos != string::npos) {
+	//					floatStr = floatStr.substr(0, dotPos + 3);  //two decimal
+	//				}
+	//				dataToString = floatStr;
+	//			}
+	//			else {
+	//				dataToString = "N/A";  // For BOOLEAN and DATE
+	//			}
+
+	//			cout << dataToString;
+	//			for (int k = 0; k < (maxWidth[j] - dataToString.length()); k++) {
+	//				cout << " ";
+	//			}
+	//			cout << string(8, ' ');  //add 8 spaces between columns
+	//		}
+	//		cout << endl;
+	//	}
+	//	cout << separatorLine << endl;
+
+	//	delete[] columnIndexes;
+	//	delete[] maxWidth;
+	//}
+	//void updateTable(const string& tableName, const string& setColumnName, const string& setValue, const string& whereColumnName, const string& whereValue) {
+	//	if (!tableExists(tableName)) {
+	//		cout << endl << "Error: Table '" << tableName << "' does not exist.";
+	//		return;
+	//	}
+
+	//	int tableIndex = getTableIndex(tableName);
+	//	Table* table = database[tableIndex];
+
+	//	int setColumnIndex;
+	//	int whereColumnIndex;
+
+	//	bool setColumnHasIndex = indexes->indexExists(setColumnName, tableName);
+	//	bool whereColumnHasIndex = indexes->indexExists(whereColumnName, tableName);
+
+	//	if (setColumnHasIndex) {
+	//		setColumnIndex = indexes->getIndexValue(setColumnName, tableName);
+	//		if (!table->columnExistsByIndex(setColumnIndex)) {
+	//			cout << endl << "Error: Column with index '" << setColumnIndex << "' does not exist in table '" << tableName << "'.";
+	//			return;
+	//		}
+	//	}
+	//	else {
+	//		if (!table->columnExists(setColumnName)) {
+	//			cout << endl << "Error: Column '" << setColumnName << "' does not exist in table '" << tableName << "'.";
+	//			return;
+	//		}
+	//		setColumnIndex = table->getColumnIndex(setColumnName);
+	//	}
+
+	//	if (whereColumnHasIndex) {
+	//		whereColumnIndex = indexes->getIndexValue(whereColumnName, tableName);
+	//		if (!table->columnExistsByIndex(whereColumnIndex)) {
+	//			cout << endl << "Error: Column with index '" << whereColumnIndex << "' does not exist in table '" << tableName << "'.";
+	//			return;
+	//		}
+	//	}
+	//	else {
+	//		if (!table->columnExists(whereColumnName)) {
+	//			cout << endl << "Error: Column '" << whereColumnName << "' does not exist in table '" << tableName << "'.";
+	//			return;
+	//		}
+	//		whereColumnIndex = table->getColumnIndex(whereColumnName);
+	//	}
+
+	//	//check if the set value corresponds with the column type and does not exceed the maximum size
+	//	ColumnType setColumnType = table->getColumnType(setColumnIndex);
+	//	int setColumnSize = table->getColumnSize(setColumnIndex);
+
+	//	try {
+	//		switch (setColumnType) {
+	//		case INT: {
+	//			if (!isValidInt(setValue)) {
+	//				throw invalid_argument("Set value must be a valid integer.");
+	//			}
+	//			if (setValue.size() > setColumnSize) {
+	//				throw invalid_argument("Set value exceeds the maximum size for the integer column.");
+	//			}
+	//			break;
+	//		}
+	//		case FLOAT: {
+	//			if (!isValidFloat(setValue)) {
+	//				throw invalid_argument("Set value must be a valid float.");
+	//			}
+	//			if (setValue.size() > setColumnSize) {
+	//				throw invalid_argument("Set value exceeds the maximum size for the float column.");
+	//			}
+	//			break;
+	//		}
+	//		case TEXT:
+	//			if (setValue.size() > setColumnSize) {
+	//				throw invalid_argument("Set value exceeds the maximum size for the text column.");
+	//			}
+	//			break;
+	//		default:
+	//			throw invalid_argument("Unsupported column type.");
+	//		}
+	//	}
+	//	catch (const invalid_argument& e) {
+	//		cout << endl << "Error: " << e.what();
+	//		return;
+	//	}
+
+	//	//update rows
+	//	int updatedRows = 0;
+	//	for (int i = 0; i < table->getNoRows(); i++) {
+	//		Row& row = table->getRow(i);
+	//		if (row.getTextData(whereColumnIndex) == whereValue) {
+	//			row.setStringData(setColumnIndex, setValue);
+	//			updatedRows++;
+	//		}
+	//	}
+
+	//	cout << endl << "Updated " << updatedRows << " rows in table '" << tableName << "' by setting " << setColumnName << " to '" << setValue << "' where " << whereColumnName << " is '" << whereValue << "'.";
+	//}
+	void alterTableAddColumn(const string& tableName, const Column& newColumn) {
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table '" << tableName << "' does not exist.";
+			return;
+		}
+
+		int tableIndex = getTableIndex(tableName);
+		Table* table = database[tableIndex];
+
+		table->addColumn(newColumn);
+
+		cout << endl << "Column '" << newColumn.getName() << "' added to table '" << tableName << "' successfully.";
+	}
+	//void alterTableDeleteColumn(const string& tableName, const string& columnName) {
+	//	//BASICALLY IF I HAVE AN INDEX ON THAT COLUMN I USE FUNCTIONS BASED ON THAT INDEX WHICH ARE FASTER
+	//	//IF I DONT HAVE AN INDEX I USE FUNCTIONS THAT SEARCH BY NAME EVERY COLUMN
+	//	if (!tableExists(tableName)) {
+	//		cout << endl << "Error: Table '" << tableName << "' does not exist.";
+	//		return;
+	//	}
+
+	//	int tableIndex = getTableIndex(tableName);
+	//	Table* table = database[tableIndex];
+
+	//	int columnIndex;
+	//	bool hasIndex = indexes->indexExists(columnName, tableName);
+	//	if (hasIndex) {
+	//		columnIndex = indexes->getIndexValue(columnName, tableName);
+	//		if (!table->columnExistsByIndex(columnIndex)) {
+	//			cout << endl << "Error: Column with index '" << columnIndex << "' does not exist in table '" << tableName << "'.";
+	//			return;
+	//		}
+	//	}
+	//	else {
+	//		if (!table->columnExists(columnName)) {
+	//			cout << endl << "Error: Column '" << columnName << "' does not exist in table '" << tableName << "'.";
+	//			return;
+	//		}
+	//		columnIndex = table->getColumnIndex(columnName);
+	//	}
+
+	//	if (hasIndex) {
+	//		indexes->removeIndex(columnName, tableName);
+	//		table->deleteColumnByIndex(columnIndex);
+	//		cout << endl << "Index on column '" << columnName << "' in table '" << tableName << "' removed successfully.";
+	//	}
+	//	else {
+	//		table->deleteColumn(columnName);
+	//	}
+
+	//	cout << endl << "Column '" << columnName << "' deleted from table '" << tableName << "' successfully.";
+	//}
+
 	void dropIndex(const string& indexName) {
-		if (!indexes->indexExistsByIndexName(indexName)) {
+		if (!indexes->indexExists(indexName)) {
 			cout << endl << "Error: Index '" << indexName << "' does not exist.";
 			return;
 		}
 
+		// Assuming IndexManager has methods to get the table name and column name by index name
 		string tableName = indexes->getIndexTableName(indexName);
 		string columnName = indexes->getIndexColumnName(indexName);
 
 		cout << endl << "Index '" << indexName << "' removed from table '" << tableName << "' on column '" << columnName << "'.";
-		indexes->removeIndexByIndexName(indexName);
+		indexes->removeIndex(indexName);
 	}
 	void showTables() const {
 		if (noTables == 0) {
@@ -1114,192 +1374,192 @@ public:
 	}
 	//--------------------------------------------------
 	//astea raman
-	void saveDatabase(const string& tablesConfigAddress) const {
-		for (int i = 0; i < noTables; i++) {
-			const Table& table = *database[i];
-			string filename = tablesConfigAddress + table.getName() + ".bin";
-			ofstream outFile(filename, ios::binary);
-			if (!outFile) {
-				cout << endl << "Error: Could not create file " << filename;
-				continue;
-			}
+	//void saveDatabase(const string& tablesConfigAddress) const {
+	//	for (int i = 0; i < noTables; i++) {
+	//		const Table& table = *database[i];
+	//		string filename = tablesConfigAddress + table.getName() + ".bin";
+	//		ofstream outFile(filename, ios::binary);
+	//		if (!outFile) {
+	//			cout << endl << "Error: Could not create file " << filename;
+	//			continue;
+	//		}
 
-			//write the table structure to the file
-			int nameLength = table.getName().length();
-			outFile.write(reinterpret_cast<const char*>(&nameLength), sizeof(nameLength));
-			outFile.write(table.getName().c_str(), nameLength);
+	//		//write the table structure to the file
+	//		int nameLength = table.getName().length();
+	//		outFile.write(reinterpret_cast<const char*>(&nameLength), sizeof(nameLength));
+	//		outFile.write(table.getName().c_str(), nameLength);
 
-			int noColumns = table.getNoColumns();
-			outFile.write(reinterpret_cast<const char*>(&noColumns), sizeof(noColumns));
-			for (int j = 0; j < noColumns; ++j) {
-				const Column& column = table.getColumn(j);
-				const string& columnName = column.getName();
-				int columnNameLength = columnName.length();
-				outFile.write(reinterpret_cast<const char*>(&columnNameLength), sizeof(columnNameLength));
-				outFile.write(columnName.c_str(), columnNameLength);
+	//		int noColumns = table.getNoColumns();
+	//		outFile.write(reinterpret_cast<const char*>(&noColumns), sizeof(noColumns));
+	//		for (int j = 0; j < noColumns; ++j) {
+	//			const Column& column = table.getColumn(j);
+	//			const string& columnName = column.getName();
+	//			int columnNameLength = columnName.length();
+	//			outFile.write(reinterpret_cast<const char*>(&columnNameLength), sizeof(columnNameLength));
+	//			outFile.write(columnName.c_str(), columnNameLength);
 
-				ColumnType columnType = column.getType();
-				outFile.write(reinterpret_cast<const char*>(&columnType), sizeof(columnType));
+	//			ColumnType columnType = column.getType();
+	//			outFile.write(reinterpret_cast<const char*>(&columnType), sizeof(columnType));
 
-				int columnSize = column.getSize();
-				outFile.write(reinterpret_cast<const char*>(&columnSize), sizeof(columnSize));
+	//			int columnSize = column.getSize();
+	//			outFile.write(reinterpret_cast<const char*>(&columnSize), sizeof(columnSize));
 
-				const string& defaultValue = column.getDefaultValue();
-				int defaultValueLength = defaultValue.length();
-				outFile.write(reinterpret_cast<const char*>(&defaultValueLength), sizeof(defaultValueLength));
-				outFile.write(defaultValue.c_str(), defaultValueLength);
+	//			const string& defaultValue = column.getDefaultValue();
+	//			int defaultValueLength = defaultValue.length();
+	//			outFile.write(reinterpret_cast<const char*>(&defaultValueLength), sizeof(defaultValueLength));
+	//			outFile.write(defaultValue.c_str(), defaultValueLength);
 
-				bool unique = column.isUnique();
-				outFile.write(reinterpret_cast<const char*>(&unique), sizeof(unique));
-			}
+	//			bool unique = column.isUnique();
+	//			outFile.write(reinterpret_cast<const char*>(&unique), sizeof(unique));
+	//		}
 
-			//write the table data to the file
-			int noRows = table.getNoRows();
-			outFile.write(reinterpret_cast<const char*>(&noRows), sizeof(noRows));
-			for (int j = 0; j < noRows; ++j) {
-				const Row& row = table.getRow(j);
-				for (int k = 0; k < noColumns; ++k) {
-					const string& value = row.getTextData(k);
-					int valueLength = value.length();
-					outFile.write(reinterpret_cast<const char*>(&valueLength), sizeof(valueLength));
-					outFile.write(value.c_str(), valueLength);
-				}
-			}
+	//		//write the table data to the file
+	//		int noRows = table.getNoRows();
+	//		outFile.write(reinterpret_cast<const char*>(&noRows), sizeof(noRows));
+	//		for (int j = 0; j < noRows; ++j) {
+	//			const Row& row = table.getRow(j);
+	//			for (int k = 0; k < noColumns; ++k) {
+	//				const string& value = row.getTextData(k);
+	//				int valueLength = value.length();
+	//				outFile.write(reinterpret_cast<const char*>(&valueLength), sizeof(valueLength));
+	//				outFile.write(value.c_str(), valueLength);
+	//			}
+	//		}
 
-			//write the indexes information to the file if the table has any indexes
-			int noIndexes = 0;
-			for (int j = 0; j < indexes->getNoIndexes(); j++) {
-				if (indexes->getIndexTableName(indexes->getIndexName(j)) == table.getName()) {
-					noIndexes++;
-				}
-			}
+	//		//write the indexes information to the file if the table has any indexes
+	//		int noIndexes = 0;
+	//		for (int j = 0; j < indexes->getNoIndexes(); j++) {
+	//			if (indexes->getIndexTableName(indexes->getIndexName(j)) == table.getName()) {
+	//				noIndexes++;
+	//			}
+	//		}
 
-			outFile.write(reinterpret_cast<const char*>(&noIndexes), sizeof(noIndexes));
-			for (int j = 0; j < indexes->getNoIndexes(); j++) {
-				if (indexes->getIndexTableName(indexes->getIndexName(j)) == table.getName()) {
-					const string& indexName = indexes->getIndexName(j);
-					int indexNameLength = indexName.length();
-					outFile.write(reinterpret_cast<const char*>(&indexNameLength), sizeof(indexNameLength));
-					outFile.write(indexName.c_str(), indexNameLength);
+	//		outFile.write(reinterpret_cast<const char*>(&noIndexes), sizeof(noIndexes));
+	//		for (int j = 0; j < indexes->getNoIndexes(); j++) {
+	//			if (indexes->getIndexTableName(indexes->getIndexName(j)) == table.getName()) {
+	//				const string& indexName = indexes->getIndexName(j);
+	//				int indexNameLength = indexName.length();
+	//				outFile.write(reinterpret_cast<const char*>(&indexNameLength), sizeof(indexNameLength));
+	//				outFile.write(indexName.c_str(), indexNameLength);
 
-					int indexValue = indexes->getIndexValue(indexes->getIndexColumnName(indexName), table.getName());
-					outFile.write(reinterpret_cast<const char*>(&indexValue), sizeof(indexValue));
+	//				int indexValue = indexes->getIndexValue(indexes->getIndexColumnName(indexName), table.getName());
+	//				outFile.write(reinterpret_cast<const char*>(&indexValue), sizeof(indexValue));
 
-					const string& columnName = indexes->getIndexColumnName(indexName);
-					int columnNameLength = columnName.length();
-					outFile.write(reinterpret_cast<const char*>(&columnNameLength), sizeof(columnNameLength));
-					outFile.write(columnName.c_str(), columnNameLength);
-				}
-			}
+	//				const string& columnName = indexes->getIndexColumnName(indexName);
+	//				int columnNameLength = columnName.length();
+	//				outFile.write(reinterpret_cast<const char*>(&columnNameLength), sizeof(columnNameLength));
+	//				outFile.write(columnName.c_str(), columnNameLength);
+	//			}
+	//		}
 
-			outFile.close();
-		}
+	//		outFile.close();
+	//	}
 
-		cout << endl << "Database saved successfully.";
-	}
-	void loadDatabase(const string& tablesConfigAddress, const string& selectCommandsAddress) {
-		//clear the current database
-		for (int i = 0; i < noTables; ++i) {
-			removeTable(0);
-		}
+	//	cout << endl << "Database saved successfully.";
+	//}
+	//void loadDatabase(const string& tablesConfigAddress, const string& selectCommandsAddress) {
+	//	//clear the current database
+	//	for (int i = 0; i < noTables; ++i) {
+	//		removeTable(0);
+	//	}
 
-		//clear the contents of the select_commands folder
-		for (const auto& entry : filesystem::directory_iterator(selectCommandsAddress)) {
-			filesystem::remove_all(entry.path());
-		}
+	//	//clear the contents of the select_commands folder
+	//	for (const auto& entry : filesystem::directory_iterator(selectCommandsAddress)) {
+	//		filesystem::remove_all(entry.path());
+	//	}
 
-		//iterate over the files in the directory where the tables are saved
-		for (const auto& entry : filesystem::directory_iterator(tablesConfigAddress)) {
-			if (entry.path().extension() == ".bin") {
-				ifstream inFile(entry.path(), ios::binary);
-				if (!inFile) {
-					cout << "Error: Could not open file " << entry.path() << endl;
-					continue;
-				}
+	//	//iterate over the files in the directory where the tables are saved
+	//	for (const auto& entry : filesystem::directory_iterator(tablesConfigAddress)) {
+	//		if (entry.path().extension() == ".bin") {
+	//			ifstream inFile(entry.path(), ios::binary);
+	//			if (!inFile) {
+	//				cout << "Error: Could not open file " << entry.path() << endl;
+	//				continue;
+	//			}
 
-				//read the table structure from the file
-				int nameLength;
-				inFile.read(reinterpret_cast<char*>(&nameLength), sizeof(nameLength));
-				string tableName(nameLength, ' ');
-				inFile.read(&tableName[0], nameLength);
+	//			//read the table structure from the file
+	//			int nameLength;
+	//			inFile.read(reinterpret_cast<char*>(&nameLength), sizeof(nameLength));
+	//			string tableName(nameLength, ' ');
+	//			inFile.read(&tableName[0], nameLength);
 
-				int noColumns;
-				inFile.read(reinterpret_cast<char*>(&noColumns), sizeof(noColumns));
-				Column* columns = new Column[noColumns];
-				for (int j = 0; j < noColumns; ++j) {
-					int columnNameLength;
-					inFile.read(reinterpret_cast<char*>(&columnNameLength), sizeof(columnNameLength));
-					string columnName(columnNameLength, ' ');
-					inFile.read(&columnName[0], columnNameLength);
+	//			int noColumns;
+	//			inFile.read(reinterpret_cast<char*>(&noColumns), sizeof(noColumns));
+	//			Column* columns = new Column[noColumns];
+	//			for (int j = 0; j < noColumns; ++j) {
+	//				int columnNameLength;
+	//				inFile.read(reinterpret_cast<char*>(&columnNameLength), sizeof(columnNameLength));
+	//				string columnName(columnNameLength, ' ');
+	//				inFile.read(&columnName[0], columnNameLength);
 
-					ColumnType columnType;
-					inFile.read(reinterpret_cast<char*>(&columnType), sizeof(columnType));
+	//				ColumnType columnType;
+	//				inFile.read(reinterpret_cast<char*>(&columnType), sizeof(columnType));
 
-					int columnSize;
-					inFile.read(reinterpret_cast<char*>(&columnSize), sizeof(columnSize));
+	//				int columnSize;
+	//				inFile.read(reinterpret_cast<char*>(&columnSize), sizeof(columnSize));
 
-					int defaultValueLength;
-					inFile.read(reinterpret_cast<char*>(&defaultValueLength), sizeof(defaultValueLength));
-					string defaultValue(defaultValueLength, ' ');
-					inFile.read(&defaultValue[0], defaultValueLength);
+	//				int defaultValueLength;
+	//				inFile.read(reinterpret_cast<char*>(&defaultValueLength), sizeof(defaultValueLength));
+	//				string defaultValue(defaultValueLength, ' ');
+	//				inFile.read(&defaultValue[0], defaultValueLength);
 
-					bool unique;
-					inFile.read(reinterpret_cast<char*>(&unique), sizeof(unique));
+	//				bool unique;
+	//				inFile.read(reinterpret_cast<char*>(&unique), sizeof(unique));
 
-					try {
-						columns[j] = Column(columnName, columnType, columnSize, defaultValue, unique);
-					}
-					catch (const invalid_argument& e) {
-						cout << endl << e.what();
-					}
-				}
+	//				try {
+	//					columns[j] = Column(columnName, columnType, columnSize, defaultValue, unique);
+	//				}
+	//				catch (const invalid_argument& e) {
+	//					cout << endl << e.what();
+	//				}
+	//			}
 
-				Table table(tableName, columns, noColumns);
-				delete[] columns;
+	//			Table table(tableName, columns, noColumns);
+	//			delete[] columns;
 
-				//read the table data from the file
-				int noRows;
-				inFile.read(reinterpret_cast<char*>(&noRows), sizeof(noRows));
-				for (int j = 0; j < noRows; ++j) {
-					string* values = new string[noColumns];
-					for (int k = 0; k < noColumns; ++k) {
-						int valueLength;
-						inFile.read(reinterpret_cast<char*>(&valueLength), sizeof(valueLength));
-						string value(valueLength, ' ');
-						inFile.read(&value[0], valueLength);
-						values[k] = value;
-					}
-					table.addRowWithoutPrintMessage(values);
-					delete[] values;
-				}
+	//			//read the table data from the file
+	//			int noRows;
+	//			inFile.read(reinterpret_cast<char*>(&noRows), sizeof(noRows));
+	//			for (int j = 0; j < noRows; ++j) {
+	//				string* values = new string[noColumns];
+	//				for (int k = 0; k < noColumns; ++k) {
+	//					int valueLength;
+	//					inFile.read(reinterpret_cast<char*>(&valueLength), sizeof(valueLength));
+	//					string value(valueLength, ' ');
+	//					inFile.read(&value[0], valueLength);
+	//					values[k] = value;
+	//				}
+	//				table.addRowWithoutPrintMessage(values);
+	//				delete[] values;
+	//			}
 
-				//read the indexes information from the file if the table has any indexes
-				int noIndexes;
-				inFile.read(reinterpret_cast<char*>(&noIndexes), sizeof(noIndexes));
-				for (int j = 0; j < noIndexes; ++j) {
-					int indexNameLength;
-					inFile.read(reinterpret_cast<char*>(&indexNameLength), sizeof(indexNameLength));
-					string indexName(indexNameLength, ' ');
-					inFile.read(&indexName[0], indexNameLength);
+	//			//read the indexes information from the file if the table has any indexes
+	//			int noIndexes;
+	//			inFile.read(reinterpret_cast<char*>(&noIndexes), sizeof(noIndexes));
+	//			for (int j = 0; j < noIndexes; ++j) {
+	//				int indexNameLength;
+	//				inFile.read(reinterpret_cast<char*>(&indexNameLength), sizeof(indexNameLength));
+	//				string indexName(indexNameLength, ' ');
+	//				inFile.read(&indexName[0], indexNameLength);
 
-					int indexValue;
-					inFile.read(reinterpret_cast<char*>(&indexValue), sizeof(indexValue));
+	//				int indexValue;
+	//				inFile.read(reinterpret_cast<char*>(&indexValue), sizeof(indexValue));
 
-					int columnNameLength;
-					inFile.read(reinterpret_cast<char*>(&columnNameLength), sizeof(columnNameLength));
-					string columnName(columnNameLength, ' ');
-					inFile.read(&columnName[0], columnNameLength);
+	//				int columnNameLength;
+	//				inFile.read(reinterpret_cast<char*>(&columnNameLength), sizeof(columnNameLength));
+	//				string columnName(columnNameLength, ' ');
+	//				inFile.read(&columnName[0], columnNameLength);
 
-					indexes->addIndex(indexName, indexValue, columnName, tableName);
-				}
+	//				indexes->addIndex(indexName, indexValue, columnName, tableName);
+	//			}
 
-				addTableToDatabase(table);
-				inFile.close();
-			}
-		}
+	//			addTableToDatabase(table);
+	//			inFile.close();
+	//		}
+	//	}
 
-		cout << endl << "Database loaded successfully." << endl;
-	}
+	//	cout << endl << "Database loaded successfully." << endl;
+	//}
 };
 
 int Database::selectCount = 0;
@@ -1758,178 +2018,178 @@ private:
 			cout << endl << e.what();
 		}
 	}
-	void stringCommandDeleteFromWhere(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
+	//void stringCommandDeleteFromWhere(const string& command) {
+	//	try {
+	//		string commandCopy = command;
+	//		trim(commandCopy);
 
-			//check if the command starts with "DELETE FROM "
-			if (commandCopy.find("DELETE FROM ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
+	//		//check if the command starts with "DELETE FROM "
+	//		if (commandCopy.find("DELETE FROM ") != 0) {
+	//			cout << endl << "Invalid command format.";
+	//			return;
+	//		}
 
-			//find the position of "WHERE "
-			size_t pos = commandCopy.find("WHERE ");
-			if (pos == string::npos) {
-				cout << endl << "Invalid command format. Missing 'WHERE'.";
-				return;
-			}
+	//		//find the position of "WHERE "
+	//		size_t pos = commandCopy.find("WHERE ");
+	//		if (pos == string::npos) {
+	//			cout << endl << "Invalid command format. Missing 'WHERE'.";
+	//			return;
+	//		}
 
-			//make sure there is a space before "WHERE "
-			if (commandCopy[pos - 1] != ' ') {
-				cout << endl << "Invalid command format. Missing space before 'WHERE'.";
-				return;
-			}
+	//		//make sure there is a space before "WHERE "
+	//		if (commandCopy[pos - 1] != ' ') {
+	//			cout << endl << "Invalid command format. Missing space before 'WHERE'.";
+	//			return;
+	//		}
 
-			//get the table name
-			string tableName = commandCopy.substr(12, pos - 13);  // 12 is the length of "DELETE FROM " with a space
-			trim(tableName);
+	//		//get the table name
+	//		string tableName = commandCopy.substr(12, pos - 13);  // 12 is the length of "DELETE FROM " with a space
+	//		trim(tableName);
 
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
+	//		if (tableName.empty()) {
+	//			cout << endl << "Invalid command format. Table name cannot be empty.";
+	//			return;
+	//		}
 
-			//get the where part
-			string wherePart = commandCopy.substr(pos + 6);  // 6 is the length of "WHERE " with a space
-			trim(wherePart);
+	//		//get the where part
+	//		string wherePart = commandCopy.substr(pos + 6);  // 6 is the length of "WHERE " with a space
+	//		trim(wherePart);
 
-			if (wherePart.empty()) {
-				cout << endl << "Invalid command format. Where part cannot be empty.";
-				return;
-			}
+	//		if (wherePart.empty()) {
+	//			cout << endl << "Invalid command format. Where part cannot be empty.";
+	//			return;
+	//		}
 
-			//split the where part into individual parts
-			string* whereParts = nullptr;
-			int noParts = 0;
-			splitCommand(wherePart, "=", whereParts, noParts);
+	//		//split the where part into individual parts
+	//		string* whereParts = nullptr;
+	//		int noParts = 0;
+	//		splitCommand(wherePart, "=", whereParts, noParts);
 
-			if (noParts != 2) {
-				cout << endl << "Invalid command format. Invalid where part.";
-				delete[] whereParts;
-				return;
-			}
+	//		if (noParts != 2) {
+	//			cout << endl << "Invalid command format. Invalid where part.";
+	//			delete[] whereParts;
+	//			return;
+	//		}
 
-			//get the column name
-			string columnName = whereParts[0];
-			trim(columnName);
+	//		//get the column name
+	//		string columnName = whereParts[0];
+	//		trim(columnName);
 
-			if (columnName.empty()) {
-				cout << endl << "Invalid command format. Column name cannot be empty.";
-				delete[] whereParts;
-				return;
-			}
+	//		if (columnName.empty()) {
+	//			cout << endl << "Invalid command format. Column name cannot be empty.";
+	//			delete[] whereParts;
+	//			return;
+	//		}
 
-			//get the value
-			string value = whereParts[1];
-			trim(value);
+	//		//get the value
+	//		string value = whereParts[1];
+	//		trim(value);
 
-			if (value.empty()) {
-				cout << endl << "Invalid command format. Value cannot be empty.";
-				delete[] whereParts;
-				return;
-			}
+	//		if (value.empty()) {
+	//			cout << endl << "Invalid command format. Value cannot be empty.";
+	//			delete[] whereParts;
+	//			return;
+	//		}
 
-			db->deleteRowFromTable(tableName, columnName, value);
+	//		db->deleteRowFromTable(tableName, columnName, value);
 
-			delete[] whereParts;
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandSelectColumns(const string& command, const string& selectCommandsAddress) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
+	//		delete[] whereParts;
+	//	}
+	//	catch (const invalid_argument& e) {
+	//		cout << endl << e.what();
+	//	}
+	//}
+	//void stringCommandSelectColumns(const string& command, const string& selectCommandsAddress) {
+	//	try {
+	//		string commandCopy = command;
+	//		trim(commandCopy);
 
-			//check if the command starts with "SELECT "
-			if (commandCopy.find("SELECT ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
+	//		//check if the command starts with "SELECT "
+	//		if (commandCopy.find("SELECT ") != 0) {
+	//			cout << endl << "Invalid command format.";
+	//			return;
+	//		}
 
-			//find the position of "FROM "
-			size_t pos = commandCopy.find("FROM ");
-			if (pos == string::npos) {
-				cout << endl << "Invalid command format. Missing 'FROM'.";
-				return;
-			}
+	//		//find the position of "FROM "
+	//		size_t pos = commandCopy.find("FROM ");
+	//		if (pos == string::npos) {
+	//			cout << endl << "Invalid command format. Missing 'FROM'.";
+	//			return;
+	//		}
 
-			//make sure there is a space before "FROM "
-			if (commandCopy[pos - 1] != ' ') {
-				cout << endl << "Invalid command format. Missing space before 'FROM'.";
-				return;
-			}
+	//		//make sure there is a space before "FROM "
+	//		if (commandCopy[pos - 1] != ' ') {
+	//			cout << endl << "Invalid command format. Missing space before 'FROM'.";
+	//			return;
+	//		}
 
-			//get the columns part
-			string columnsPart = commandCopy.substr(7, pos - 8);  // 7 is the length of "SELECT " with a space
-			trim(columnsPart);
+	//		//get the columns part
+	//		string columnsPart = commandCopy.substr(7, pos - 8);  // 7 is the length of "SELECT " with a space
+	//		trim(columnsPart);
 
-			if (columnsPart.empty()) {
-				cout << endl << "Invalid command format. Columns cannot be empty.";
-				return;
-			}
+	//		if (columnsPart.empty()) {
+	//			cout << endl << "Invalid command format. Columns cannot be empty.";
+	//			return;
+	//		}
 
-			//count the number of columns
-			int noColumns = 1;
-			for (char c : columnsPart) {
-				if (c == ',') {
-					noColumns++;
-				}
-			}
+	//		//count the number of columns
+	//		int noColumns = 1;
+	//		for (char c : columnsPart) {
+	//			if (c == ',') {
+	//				noColumns++;
+	//			}
+	//		}
 
-			//split the columns part into individual columns
-			string* columns = new string[noColumns];
-			size_t start = 0;
-			size_t end = columnsPart.find(',');
-			int index = 0;
+	//		//split the columns part into individual columns
+	//		string* columns = new string[noColumns];
+	//		size_t start = 0;
+	//		size_t end = columnsPart.find(',');
+	//		int index = 0;
 
-			while (end != string::npos) {
-				columns[index] = columnsPart.substr(start, end - start);
-				trim(columns[index]);
-				start = end + 1;
-				end = columnsPart.find(',', start);
-				index++;
-			}
+	//		while (end != string::npos) {
+	//			columns[index] = columnsPart.substr(start, end - start);
+	//			trim(columns[index]);
+	//			start = end + 1;
+	//			end = columnsPart.find(',', start);
+	//			index++;
+	//		}
 
-			//add the last column
-			columns[index] = columnsPart.substr(start);
-			trim(columns[index]);
+	//		//add the last column
+	//		columns[index] = columnsPart.substr(start);
+	//		trim(columns[index]);
 
-			if (noColumns == 0) {
-				cout << endl << "Invalid command format. No columns specified.";
-				delete[] columns;
-				return;
-			}
+	//		if (noColumns == 0) {
+	//			cout << endl << "Invalid command format. No columns specified.";
+	//			delete[] columns;
+	//			return;
+	//		}
 
-			//get the table name
-			string tableName = commandCopy.substr(pos + 5);  // 5 is the length of "FROM " with a space
-			trim(tableName);
+	//		//get the table name
+	//		string tableName = commandCopy.substr(pos + 5);  // 5 is the length of "FROM " with a space
+	//		trim(tableName);
 
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				delete[] columns;
-				return;
-			}
+	//		if (tableName.empty()) {
+	//			cout << endl << "Invalid command format. Table name cannot be empty.";
+	//			delete[] columns;
+	//			return;
+	//		}
 
-			//check for extra arguments
-			size_t extraArgsPos = tableName.find(' ');
-			if (extraArgsPos != string::npos) {
-				cout << endl << "Invalid command format. Too many arguments.";
-				delete[] columns;
-				return;
-			}
+	//		//check for extra arguments
+	//		size_t extraArgsPos = tableName.find(' ');
+	//		if (extraArgsPos != string::npos) {
+	//			cout << endl << "Invalid command format. Too many arguments.";
+	//			delete[] columns;
+	//			return;
+	//		}
 
-			db->selectColumns(tableName, columns, noColumns, selectCommandsAddress);
+	//		db->selectColumns(tableName, columns, noColumns, selectCommandsAddress);
 
-			delete[] columns;
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
+	//		delete[] columns;
+	//	}
+	//	catch (const invalid_argument& e) {
+	//		cout << endl << e.what();
+	//	}
+	//}
 	void stringCommandSelectWhere(const string& command, const string& selectCommandsAddress) {
 		try {
 			string commandCopy = command;
@@ -2050,98 +2310,99 @@ private:
 			cout << endl << e.what();
 		}
 	}
-	void stringCommandUpdateTable(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
 
-			//check if the command starts with "UPDATE "
-			if (commandCopy.find("UPDATE ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
+	//void stringCommandUpdateTable(const string& command) {
+	//	try {
+	//		string commandCopy = command;
+	//		trim(commandCopy);
 
-			//find the position of " SET "
-			size_t setPos = commandCopy.find(" SET ");
-			if (setPos == string::npos) {
-				cout << endl << "Invalid command format. Missing 'SET'.";
-				return;
-			}
+	//		//check if the command starts with "UPDATE "
+	//		if (commandCopy.find("UPDATE ") != 0) {
+	//			cout << endl << "Invalid command format.";
+	//			return;
+	//		}
 
-			//find the position of " WHERE "
-			size_t wherePos = commandCopy.find(" WHERE ");
-			if (wherePos == string::npos) {
-				cout << endl << "Invalid command format. Missing 'WHERE'.";
-				return;
-			}
+	//		//find the position of " SET "
+	//		size_t setPos = commandCopy.find(" SET ");
+	//		if (setPos == string::npos) {
+	//			cout << endl << "Invalid command format. Missing 'SET'.";
+	//			return;
+	//		}
 
-			//extract the table name
-			string tableName = commandCopy.substr(7, setPos - 7);  // 7 is the length of "UPDATE "
-			trim(tableName);
+	//		//find the position of " WHERE "
+	//		size_t wherePos = commandCopy.find(" WHERE ");
+	//		if (wherePos == string::npos) {
+	//			cout << endl << "Invalid command format. Missing 'WHERE'.";
+	//			return;
+	//		}
 
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
+	//		//extract the table name
+	//		string tableName = commandCopy.substr(7, setPos - 7);  // 7 is the length of "UPDATE "
+	//		trim(tableName);
 
-			//extract the set part
-			string setPart = commandCopy.substr(setPos + 5, wherePos - (setPos + 5));  // 5 is the length of " SET "
-			trim(setPart);
+	//		if (tableName.empty()) {
+	//			cout << endl << "Invalid command format. Table name cannot be empty.";
+	//			return;
+	//		}
 
-			if (setPart.empty()) {
-				cout << endl << "Invalid command format. Set part cannot be empty.";
-				return;
-			}
+	//		//extract the set part
+	//		string setPart = commandCopy.substr(setPos + 5, wherePos - (setPos + 5));  // 5 is the length of " SET "
+	//		trim(setPart);
 
-			//split the set part into column and value
-			size_t equalPos = setPart.find('=');
-			if (equalPos == string::npos) {
-				cout << endl << "Invalid command format. Missing '=' in set part.";
-				return;
-			}
+	//		if (setPart.empty()) {
+	//			cout << endl << "Invalid command format. Set part cannot be empty.";
+	//			return;
+	//		}
 
-			string setColumnName = setPart.substr(0, equalPos);
-			trim(setColumnName);
-			string setValue = setPart.substr(equalPos + 1);
-			trim(setValue);
+	//		//split the set part into column and value
+	//		size_t equalPos = setPart.find('=');
+	//		if (equalPos == string::npos) {
+	//			cout << endl << "Invalid command format. Missing '=' in set part.";
+	//			return;
+	//		}
 
-			if (setColumnName.empty() || setValue.empty()) {
-				cout << endl << "Invalid command format. Set column or value cannot be empty.";
-				return;
-			}
+	//		string setColumnName = setPart.substr(0, equalPos);
+	//		trim(setColumnName);
+	//		string setValue = setPart.substr(equalPos + 1);
+	//		trim(setValue);
 
-			//extract the condition part
-			string conditionPart = commandCopy.substr(wherePos + 7);  // 7 is the length of " WHERE "
-			trim(conditionPart);
+	//		if (setColumnName.empty() || setValue.empty()) {
+	//			cout << endl << "Invalid command format. Set column or value cannot be empty.";
+	//			return;
+	//		}
 
-			if (conditionPart.empty()) {
-				cout << endl << "Invalid command format. Condition cannot be empty.";
-				return;
-			}
+	//		//extract the condition part
+	//		string conditionPart = commandCopy.substr(wherePos + 7);  // 7 is the length of " WHERE "
+	//		trim(conditionPart);
 
-			//split the condition part into column and value
-			size_t conditionEqualPos = conditionPart.find('=');
-			if (conditionEqualPos == string::npos) {
-				cout << endl << "Invalid command format. Missing '=' in condition part.";
-				return;
-			}
+	//		if (conditionPart.empty()) {
+	//			cout << endl << "Invalid command format. Condition cannot be empty.";
+	//			return;
+	//		}
 
-			string whereColumnName = conditionPart.substr(0, conditionEqualPos);
-			trim(whereColumnName);
-			string whereValue = conditionPart.substr(conditionEqualPos + 1);
-			trim(whereValue);
+	//		//split the condition part into column and value
+	//		size_t conditionEqualPos = conditionPart.find('=');
+	//		if (conditionEqualPos == string::npos) {
+	//			cout << endl << "Invalid command format. Missing '=' in condition part.";
+	//			return;
+	//		}
 
-			if (whereColumnName.empty() || whereValue.empty()) {
-				cout << endl << "Invalid command format. Condition column or value cannot be empty.";
-				return;
-			}
+	//		string whereColumnName = conditionPart.substr(0, conditionEqualPos);
+	//		trim(whereColumnName);
+	//		string whereValue = conditionPart.substr(conditionEqualPos + 1);
+	//		trim(whereValue);
 
-			db->updateTable(tableName, setColumnName, setValue, whereColumnName, whereValue);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
+	//		if (whereColumnName.empty() || whereValue.empty()) {
+	//			cout << endl << "Invalid command format. Condition column or value cannot be empty.";
+	//			return;
+	//		}
+
+	//		db->updateTable(tableName, setColumnName, setValue, whereColumnName, whereValue);
+	//	}
+	//	catch (const invalid_argument& e) {
+	//		cout << endl << e.what();
+	//	}
+	//}
 	void stringCommandAlterTableAddColumn(const string& command) {
 		try {
 			string commandCopy = command;
@@ -2245,48 +2506,48 @@ private:
 			cout << endl << e.what();
 		}
 	}
-	void stringCommandAlterTableDropColumn(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
+	//void stringCommandAlterTableDropColumn(const string& command) {
+	//	try {
+	//		string commandCopy = command;
+	//		trim(commandCopy);
 
-			//check if the command starts with "ALTER TABLE "
-			if (commandCopy.find("ALTER TABLE ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
+	//		//check if the command starts with "ALTER TABLE "
+	//		if (commandCopy.find("ALTER TABLE ") != 0) {
+	//			cout << endl << "Invalid command format.";
+	//			return;
+	//		}
 
-			//find the position of " DROP COLUMN "
-			size_t dropPos = commandCopy.find(" DROP COLUMN ");
-			if (dropPos == string::npos) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
+	//		//find the position of " DROP COLUMN "
+	//		size_t dropPos = commandCopy.find(" DROP COLUMN ");
+	//		if (dropPos == string::npos) {
+	//			cout << endl << "Invalid command format.";
+	//			return;
+	//		}
 
-			//extract the table name
-			string tableName = commandCopy.substr(12, dropPos - 12);  // 12 is the length of "ALTER TABLE "
-			trim(tableName);
+	//		//extract the table name
+	//		string tableName = commandCopy.substr(12, dropPos - 12);  // 12 is the length of "ALTER TABLE "
+	//		trim(tableName);
 
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
+	//		if (tableName.empty()) {
+	//			cout << endl << "Invalid command format. Table name cannot be empty.";
+	//			return;
+	//		}
 
-			//extract the column name
-			string columnName = commandCopy.substr(dropPos + 13);  // 13 is the length of " DROP COLUMN "
-			trim(columnName);
+	//		//extract the column name
+	//		string columnName = commandCopy.substr(dropPos + 13);  // 13 is the length of " DROP COLUMN "
+	//		trim(columnName);
 
-			if (columnName.empty()) {
-				cout << endl << "Invalid command format. Column name cannot be empty.";
-				return;
-			}
+	//		if (columnName.empty()) {
+	//			cout << endl << "Invalid command format. Column name cannot be empty.";
+	//			return;
+	//		}
 
-			db->alterTableDeleteColumn(tableName, columnName);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
+	//		db->alterTableDeleteColumn(tableName, columnName);
+	//	}
+	//	catch (const invalid_argument& e) {
+	//		cout << endl << e.what();
+	//	}
+	//}
 	void stringCommandCreateIndex(const string& command) {
 		try {
 			string commandCopy = command;
@@ -2552,11 +2813,11 @@ public:
 		else if (containsWord(command, "INSERT") && containsWord(command, "INTO") && containsWord(command, "VALUES")) {
 			stringCommandinsertIntoValues(command);
 		}
-		else if (containsWord(command, "DELETE") && containsWord(command, "FROM") && containsWord(command, "WHERE")) {
-			stringCommandDeleteFromWhere(command);
-		}
 		else if (containsWord(command, "SELECT") && containsWord(command, "WHERE")) {
 			stringCommandSelectWhere(command, selectCommandsAddress);
+		}
+		/*else if (containsWord(command, "DELETE") && containsWord(command, "FROM") && containsWord(command, "WHERE")) {
+			stringCommandDeleteFromWhere(command);
 		}
 		else if (containsWord(command, "SELECT") && !containsWord(command, "ALL") && !containsWord(command, "WHERE")) {
 			stringCommandSelectColumns(command, selectCommandsAddress);
@@ -2569,7 +2830,7 @@ public:
 		}
 		else if (containsWord(command, "ALTER") && containsWord(command, "TABLE") && containsWord(command, "DROP") && containsWord(command, "COLUMN")) {
 			stringCommandAlterTableDropColumn(command);
-		}
+		}*/
 		else if (containsWord(command, "CREATE") && containsWord(command, "INDEX")) {
 			stringCommandCreateIndex(command);
 		}
@@ -2647,7 +2908,7 @@ int main() {
 
 	cout << "Use the 'help' command to view available commands and their syntax." << endl;
 
-	db.loadDatabase(FileManager::TABLES_CONFIG_ADDRESS, FileManager::SELECT_COMMANDS_ADDRESS);
+	//db.loadDatabase(FileManager::TABLES_CONFIG_ADDRESS, FileManager::SELECT_COMMANDS_ADDRESS);
 
 	//read commands from multiple files at the start
 	fm.readStartCommandsFromFiles(FileManager::START_COMMANDS_ADDRESSES, FileManager::MAX_COMMANDS_FILES, commands);
@@ -2666,7 +2927,7 @@ int main() {
 		commands.handleCommand(userCommand, FileManager::TABLES_CONFIG_ADDRESS, FileManager::SELECT_COMMANDS_ADDRESS);
 	}
 
-	db.saveDatabase(FileManager::TABLES_CONFIG_ADDRESS);
+	//db.saveDatabase(FileManager::TABLES_CONFIG_ADDRESS);
 
 	return 0;
 }

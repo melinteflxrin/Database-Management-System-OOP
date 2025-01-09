@@ -129,7 +129,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Column.cpp" />
-    <ClCompile Include="Index.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Row.cpp" />
     <ClCompile Include="Table.cpp" />
@@ -138,7 +137,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Column.h" />
-    <ClInclude Include="Index.h" />
     <ClInclude Include="Row.h" />
     <ClInclude Include="Table.h" />
     <ClInclude Include="TableNames.h" />
