@@ -31,75 +31,54 @@ private:
 	ValueNode* head;            // Head of the linked list for values
 
 public:
-	// Iterator for traversing the ValueNode list
-	class ValueIterator {
+	// Internal Iterator class for safe access to ValueNode
+	class Iterator {
 	private:
 		ValueNode* current;
 	public:
-		ValueIterator(ValueNode* node) : current(node) {}
+		Iterator(ValueNode* start) : current(start) {}
 
 		bool hasNext() const {
 			return current != nullptr;
 		}
 
-		std::string nextValue() {
-			if (current) {
-				std::string value = current->value;
+		void next() {
+			if (hasNext()) {
 				current = current->next;
-				return value;
 			}
-			throw std::out_of_range("No more values.");
 		}
 
-		void getPositions(int*& positions, int& count) const {
-			count = 0;
-			if (current) {
-				Node* pos = current->positions;
-				while (pos) {
-					count++;
-					pos = pos->next;
-				}
+		std::string currentValue() const {
+			return current ? current->value : "";
+		}
 
-				positions = new int[count];
-				pos = current->positions;
-				for (int i = 0; i < count; ++i) {
-					positions[i] = pos->position;
-					pos = pos->next;
-				}
+		// Get the positions for the current ValueNode
+		// Returns the number of positions and an array of position values
+		int* currentPositions(int& count) const {
+			if (current == nullptr) {
+				count = 0;
+				return nullptr;
 			}
-			else {
-				positions = nullptr;
+
+			Node* pos = current->positions;
+			count = 0;
+			// Count the number of positions
+			Node* tempPos = pos;
+			while (tempPos) {
+				count++;
+				tempPos = tempPos->next;
 			}
+
+			// Create an array to store positions
+			int* positions = new int[count];
+			tempPos = pos;
+			for (int i = 0; i < count; ++i) {
+				positions[i] = tempPos->position;
+				tempPos = tempPos->next;
+			}
+			return positions;
 		}
 	};
-
-	// Public method to get an iterator for the values
-	ValueIterator getValues() const {
-		return ValueIterator(head);
-	}
-
-public:
-	// Helper function to create a copy of the positions list
-	static Node* copyPositions(Node* original) {
-		if (!original) return nullptr;
-
-		Node* head = new Node(original->position);
-		Node* current = head;
-		Node* originalCurrent = original->next;
-
-		while (originalCurrent) {
-			Node* newNode = new Node(originalCurrent->position);
-			current->next = newNode;
-			current = newNode;
-			originalCurrent = originalCurrent->next;
-		}
-
-		return head;
-	}
-	// Public method to return a copy of the positions
-	Node* getPositionsCopy(ValueNode* valueNode) const {
-		return valueNode ? copyPositions(valueNode->positions) : nullptr;
-	}
 
 	Index() : head(nullptr) {}
 
@@ -139,22 +118,6 @@ public:
 
 	~Index() {
 		clear();
-	}
-
-	ValueNode* reverseList() {
-		ValueNode* current = head;
-		ValueNode* prev = nullptr;
-		ValueNode* next = nullptr;
-
-		while (current) {
-			next = current->next;
-			current->next = prev;
-			prev = current;
-			current = next;
-		}
-
-		head = prev;
-		return head;
 	}
 
 	void addValue(const std::string& value, int position) {
@@ -264,6 +227,21 @@ public:
 		}
 	}
 
+	void reverseListInPlace() {
+		ValueNode* current = head;
+		ValueNode* prev = nullptr;
+		ValueNode* next = nullptr;
+
+		while (current) {
+			next = current->next;
+			current->next = prev;
+			prev = current;
+			current = next;
+		}
+
+		head = prev;
+	}
+
 	string getIndexName() const {
 		return indexName;
 	}
@@ -331,6 +309,10 @@ public:
 		}
 
 		return newHead;  // Return the new head node of the copied list
+	}
+
+	Iterator createIterator() {
+		return Iterator(head);
 	}
 
 private:
@@ -401,6 +383,20 @@ public:
 		delete[] indexes;
 		indexes = newIndexes;
 		noIndexes--;
+	}
+
+	bool addValueToIndex(const string& indexName, const string& value, int position) {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexes[i]->getIndexName() == indexName) {
+				// Directly add the value and position to the index
+				indexes[i]->addValue(value, position);
+				return true; // Successfully added
+			}
+		}
+
+		// If index not found, log an error
+		cerr << "Error: Index '" << indexName << "' not found." << endl;
+		return false;
 	}
 
 	Index* getIndex(const std::string& indexName) const {
@@ -1445,31 +1441,43 @@ public:
 					outFile.write(index->getColumnName().c_str(), columnNameLength);
 					cout << "Column Name: " << index->getColumnName() << endl;
 
-					index->reverseList();
-					Index::ValueIterator iter = index->getValues();
+					// Reverse the list before saving
+					index->reverseListInPlace();
+
+					// Create an iterator to iterate over ValueNode list
+					Index::Iterator iter = index->createIterator();
+
+					// Write values and their positions
+					std::string value;
+					int* positions = nullptr;
+					int positionCount = 0;
 
 					while (iter.hasNext()) {
-						std::string value = iter.nextValue();
+						// Get the current value and positions
+						value = iter.currentValue();
+						positions = iter.currentPositions(positionCount);  // Get positions for the current value
+
+						// Write the value
 						int valueLength = value.length();
 						outFile.write(reinterpret_cast<const char*>(&valueLength), sizeof(valueLength));
 						outFile.write(value.c_str(), valueLength);
 						std::cout << "Value: " << value << std::endl;
 
-						//get the positions for the current value node
-						int* positions = nullptr;
-						int positionCount = 0;
-						iter.getPositions(positions, positionCount);
-
+						// Write position count
 						outFile.write(reinterpret_cast<const char*>(&positionCount), sizeof(positionCount));
 						std::cout << "Position Count: " << positionCount << std::endl;
 
+						// Write positions
 						for (int i = 0; i < positionCount; ++i) {
 							outFile.write(reinterpret_cast<const char*>(&positions[i]), sizeof(positions[i]));
 							std::cout << "Position: " << positions[i] << std::endl;
 						}
 
-						//cleanup: free the positions array
+						// Cleanup: delete positions array to avoid memory leak
 						delete[] positions;
+
+						// Move to the next ValueNode in the iteration
+						iter.next();
 					}
 
 					//write an end marker to indicate the end of the current index
@@ -1563,7 +1571,7 @@ public:
 
 				//read the index information from the file
 				while (inFile.peek() != EOF) {
-					// Read index metadata
+					//read index metadata
 					int indexNameLength;
 					inFile.read(reinterpret_cast<char*>(&indexNameLength), sizeof(indexNameLength));
 					string indexName(indexNameLength, ' ');
@@ -1582,34 +1590,33 @@ public:
 					inFile.read(&columnName[0], columnNameLength);
 					cout << "Loaded Column Name: " << columnName << endl;
 
-					// Create the index
+					//create the index
 					indexManager.createIndex(indexName, indexTableName, columnName);
-					Index* index = indexManager.getIndex(indexName);
 
-					// Read values and positions for this index
+					//read values and positions for this index
 					while (true) {
-						// Read value length and value
+						//read value length and value
 						int valueLength;
 						inFile.read(reinterpret_cast<char*>(&valueLength), sizeof(valueLength));
-						if (inFile.fail()) break; // Exit loop if read failed or EOF reached unexpectedly
+						if (inFile.fail()) break; //exit loop if read failed or EOF reached unexpectedly
 
 						string value(valueLength, ' ');
 						inFile.read(&value[0], valueLength);
-						if (inFile.fail()) break; // Exit loop if read failed or EOF reached unexpectedly
+						if (inFile.fail()) break;
 						cout << "Loaded Value: " << value << endl;
 
-						// Read position count
+						//position count
 						int positionCount;
 						inFile.read(reinterpret_cast<char*>(&positionCount), sizeof(positionCount));
-						if (inFile.fail()) break; // Exit loop if read failed or EOF reached unexpectedly
+						if (inFile.fail()) break;
 						cout << "Loaded Position Count: " << positionCount << endl;
 
 						if (positionCount < 0) {
 							cerr << "Error: Invalid position count for value '" << value << "' in index '" << indexName << "'." << endl;
-							break; // Abort reading this index to avoid corruption
+							break; //abort reading this index to avoid corruption
 						}
 
-						// Read positions
+						//read positions
 						for (int i = 0; i < positionCount; ++i) {
 							int position;
 							inFile.read(reinterpret_cast<char*>(&position), sizeof(position));
@@ -1618,29 +1625,32 @@ public:
 								break;
 							}
 							cout << "Loaded Position: " << position << endl;
-							index->addValue(value, position);
+
+							if (!indexManager.addValueToIndex(indexName, value, position)) {
+								cerr << "Error: Could not add position to index." << endl;
+								break;
+							}
 						}
 
-						// Check for the end marker to determine if we've reached the end of this index
+						//check for the end marker to check if we reached the end of this index
 						int endIndexMarker;
 						inFile.read(reinterpret_cast<char*>(&endIndexMarker), sizeof(endIndexMarker));
 						if (endIndexMarker == -1) {
 							cout << "End of Index Marker Found for: " << indexName << endl;
-							break; // Exit loop when end marker for this index is found
+							break; //exit loop when end marker for this index is found
 						}
 						else {
-							// If the marker isn't found, reset file position or handle error
-							inFile.seekg(-static_cast<std::streamoff>(sizeof(endIndexMarker)), ios::cur); // Move the pointer back by one marker size
+							//if the marker isnt found -> reset file position or handle error
+							inFile.seekg(-static_cast<std::streamoff>(sizeof(endIndexMarker)), ios::cur); //move the pointer back by one marker size
 						}
 
-						// Ensure no data corruption
+						//ensure no data corruption
 						if (inFile.fail()) {
 							cerr << "Error: Data corruption detected while reading index '" << indexName << "'." << endl;
 							break;
 						}
 					}
 				}
-				// Close the file after reading
 				inFile.close();
 			}
 		}
