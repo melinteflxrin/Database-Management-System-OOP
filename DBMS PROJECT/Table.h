@@ -44,6 +44,8 @@ public:
 	//ROWS
 	void deleteRow(int index);
 	void addRow(const string* values);
+	bool addRowBool(const string* values);
+
 	void addRowWithoutPrintMessage(const string* values);
 
 	//COLUMNS

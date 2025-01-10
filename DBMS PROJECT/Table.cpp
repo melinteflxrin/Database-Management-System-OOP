@@ -275,6 +275,75 @@ void Table::addRow(const string* values) {
 
 	cout << endl << "Values inserted into table '" << name << "' successfully.";
 }
+bool Table::addRowBool(const string* values) {
+	if (values == nullptr) {
+		cout << endl << "Error: Row values cannot be null.";
+		return false; // Indicate failure
+	}
+
+	Row* newRow = new Row(this->noColumns);
+
+	for (int i = 0; i < this->noColumns; i++) {
+		const Column& column = this->getColumn(i);
+
+		// Check if the value is UNIQUE
+		if (column.isUnique()) {
+			for (int j = 0; j < this->noRows; j++) {
+				if (this->rows[j]->getTextData(i) == values[i]) {
+					cout << endl << "Error: Value for column '" << column.getName() << "' must be unique.";
+					delete newRow; // Clean up allocated memory
+					return false; // Indicate failure
+				}
+			}
+		}
+
+		// Check if the value exceeds the maximum size
+		if (values[i].size() > column.getSize()) {
+			cout << endl << "Error: Value for column '" << column.getName()
+				<< "' exceeds the maximum size of " << column.getSize() << ".";
+			delete newRow; // Clean up allocated memory
+			return false; // Indicate failure
+		}
+
+		// Set the value based on the column type
+		switch (column.getType()) {
+		case INT:
+			newRow->setIntData(i, values[i]);
+			break;
+		case TEXT:
+			newRow->setStringData(i, values[i]);
+			break;
+		case FLOAT:
+			newRow->setFloatData(i, values[i]);
+			break;
+		case BOOLEAN:
+			newRow->setStringData(i, values[i] == "TRUE" ? "TRUE" : "FALSE");
+			break;
+		case DATE:
+			newRow->setStringData(i, values[i]); // DATE AS STRING
+			break;
+		default:
+			cout << endl << "Error: Unsupported column type.";
+			delete newRow; // Clean up allocated memory
+			return false; // Indicate failure
+		}
+	}
+
+	// Add the new row to the table
+	Row** tempRows = new Row * [this->noRows + 1];
+	for (int i = 0; i < this->noRows; ++i) {
+		tempRows[i] = this->rows[i];
+	}
+	tempRows[this->noRows] = newRow;
+
+	delete[] this->rows;
+	this->rows = tempRows;
+	this->noRows++;
+
+	cout << endl << "Values inserted into table '" << name << "' successfully.";
+	return true; // Indicate success
+}
+
 void Table::addRowWithoutPrintMessage(const string* values) {
 	if (values == nullptr) {
 		cout << endl << "Error: row values cannot be null.";
