@@ -12,26 +12,26 @@ using namespace std;
 
 class Index {
 private:
-	struct Node {               // Node for linked list to store positions
-		int position;           // Position of the value in the column
+	struct Node {               //node for linked list to store positions
+		int position;           //position of the value in the column
 		Node* next;
 		Node(int pos) : position(pos), next(nullptr) {}
 	};
 
-	struct ValueNode {          // Node to store value and its linked list of positions
+	struct ValueNode {          // node to store value and its linked list of positions
 		string value;
 		Node* positions;
 		ValueNode* next;
 		ValueNode(const string& val) : value(val), positions(nullptr), next(nullptr) {}
 	};
 
-	string indexName;      // Name of the index
-	string tableName;      // Name of the table the index belongs to
-	string columnName;     // Name of the column the index refers to
-	ValueNode* head;            // Head of the linked list for values
+	string indexName;
+	string tableName;
+	string columnName;
+	ValueNode* head;      //head of the linked list for values
 
 public:
-	// Internal Iterator class for safe access to ValueNode
+	//internal Iterator class for safe access to ValueNode
 	class Iterator {
 	private:
 		ValueNode* current;
@@ -48,12 +48,12 @@ public:
 			}
 		}
 
-		std::string currentValue() const {
+		string currentValue() const {
 			return current ? current->value : "";
 		}
 
-		// Get the positions for the current ValueNode
-		// Returns the number of positions and an array of position values
+		//get the positions for the current ValueNode
+		//return number of positions and an array of position values
 		int* currentPositions(int& count) const {
 			if (current == nullptr) {
 				count = 0;
@@ -62,14 +62,14 @@ public:
 
 			Node* pos = current->positions;
 			count = 0;
-			// Count the number of positions
+			//count the number of positions
 			Node* tempPos = pos;
 			while (tempPos) {
 				count++;
 				tempPos = tempPos->next;
 			}
 
-			// Create an array to store positions
+			//create an array to store positions
 			int* positions = new int[count];
 			tempPos = pos;
 			for (int i = 0; i < count; ++i) {
@@ -82,16 +82,16 @@ public:
 
 	Index() : head(nullptr) {}
 
-	Index(const std::string& indexName, const std::string& tableName, const std::string& columnName)
+	Index(const string& indexName, const string& tableName, const string& columnName)
 		: indexName(indexName), tableName(tableName), columnName(columnName), head(nullptr) {}
 
 	Index(const Index& other) : indexName(other.indexName), tableName(other.tableName), columnName(other.columnName), head(nullptr) {
 		if (other.head) {
-			// Copy the head node
+			//copy the head node
 			head = new ValueNode(other.head->value);
 			head->positions = copyNodeList(other.head->positions);
 
-			// Copy the rest of the value nodes
+			//copy the rest of the value nodes
 			ValueNode* current = head;
 			ValueNode* otherCurrent = other.head->next;
 			while (otherCurrent) {
@@ -120,49 +120,89 @@ public:
 		clear();
 	}
 
-	void addValue(const std::string& value, int position) {
+	void addValue(const string& value, int position) {
 		ValueNode* current = head;
 		while (current) {
 			if (current->value == value) {
-				// Check if the position already exists
+				// check if the position already exists
 				Node* pos = current->positions;
 				while (pos) {
 					if (pos->position == position) {
-						// Position already exists; do nothing
-						std::cout << "Duplicate position ignored for value: " << value
-							<< " at position: " << position << std::endl;
+						// position already exists; do nothing
+						cout << "Duplicate position ignored for value: " << value
+							<< " at position: " << position << endl;
 						return;
 					}
 					pos = pos->next;
 				}
-				// Position does not exist; add it to the list
+				// position does not exist; add it to the list
 				Node* newPos = new Node(position);
-				// Find the last position and append the new position to it
+				// find the last position and append the new position to it
 				if (current->positions == nullptr) {
-					current->positions = newPos; // If no positions, set as first
+					current->positions = newPos; // if no positions, set as first
 				}
 				else {
 					pos = current->positions;
 					while (pos->next) {
 						pos = pos->next;
 					}
-					pos->next = newPos; // Append at the end
+					pos->next = newPos; // append at the end
 				}
-				std::cout << "Added position: " << position << " for value: " << value << std::endl;
+				cout << "Added position: " << position << " for value: " << value << endl;
 				return;
 			}
 			current = current->next;
 		}
 
-		// If value not found, add a new ValueNode
+		//if value not found, add a new ValueNode
 		ValueNode* newValue = new ValueNode(value);
 		newValue->positions = new Node(position);  // First position for new value
 		newValue->next = head;
 		head = newValue;
-		std::cout << "Added new value: " << value << " at position: " << position << std::endl;
+		cout << "Added new value: " << value << " at position: " << position << endl;
 	}
 
-	int getRowCount(const std::string& value) const {
+	void removeValue(const string& value, int position) {
+		ValueNode* current = head;
+		ValueNode* prev = nullptr;
+
+		while (current) {
+			if (current->value == value) {
+				Node* pos = current->positions;
+				Node* posPrev = nullptr;
+
+				while (pos) {
+					if (pos->position == position) {
+						if (posPrev) {
+							posPrev->next = pos->next;
+						}
+						else {
+							current->positions = pos->next;
+						}
+						delete pos;
+
+						//if no more positions, remove the value node
+						if (!current->positions) {
+							if (prev) {
+								prev->next = current->next;
+							}
+							else {
+								head = current->next;
+							}
+							delete current;
+						}
+						return;
+					}
+					posPrev = pos;
+					pos = pos->next;
+				}
+			}
+			prev = current;
+			current = current->next;
+		}
+	}
+
+	int getRowCount(const string& value) const {
 		ValueNode* current = head;
 		while (current) {
 			if (current->value == value) {
@@ -179,7 +219,7 @@ public:
 		return 0;
 	}
 
-	void getKeys(const std::string& value, int* rows, int& rowCount) const {
+	void getKeys(const string& value, int* rows, int& rowCount) const {
 		rowCount = 0;
 		ValueNode* current = head;
 		while (current) {
@@ -195,34 +235,34 @@ public:
 		}
 	}
 
-	void findValue(const std::string& value) const {
+	void findValue(const string& value) const {
 		ValueNode* current = head;
 		while (current) {
 			if (current->value == value) {
-				std::cout << "Value: " << value << " found at positions: ";
+				cout << "Value: " << value << " found at positions: ";
 				Node* pos = current->positions;
 				while (pos) {
-					std::cout << pos->position << " ";
+					cout << pos->position << " ";
 					pos = pos->next;
 				}
-				std::cout << std::endl;
+				cout << endl;
 				return;
 			}
 			current = current->next;
 		}
-		std::cout << "Value: " << value << " not found in the index.\n";
+		cout << "Value: " << value << " not found in the index.\n";
 	}
 
 	void displayIndex() const {
 		ValueNode* current = head;
 		while (current) {
-			std::cout << "Value: " << current->value << " -> Positions: ";
+			cout << "Value: " << current->value << " -> Positions: ";
 			Node* pos = current->positions;
 			while (pos) {
-				std::cout << pos->position << " ";
+				cout << pos->position << " ";
 				pos = pos->next;
 			}
-			std::cout << std::endl;
+			cout << std::endl;
 			current = current->next;
 		}
 	}
@@ -254,32 +294,32 @@ public:
 	ValueNode* getHead() const {
 		if (!head) return nullptr;
 
-		// Create a new head node (deep copy of the original head)
+		//create a new head node (deep copy of the original head)
 		Index::ValueNode* newHead = new Index::ValueNode(head->value);
 
-		// Create a copy of the positions linked list for the new head node
+		// create a copy of the positions linked list for the new head node
 		Index::Node* posCurrent = head->positions;
 		Index::Node* newPositionsHead = nullptr;
 		Index::Node* newPositionsCurrent = nullptr;
 		while (posCurrent) {
 			Index::Node* newPos = new Index::Node(posCurrent->position);
 			if (!newPositionsHead) {
-				newPositionsHead = newPos;  // First position node
+				newPositionsHead = newPos;  // first position node
 			}
 			else {
-				newPositionsCurrent->next = newPos;  // Append to the list
+				newPositionsCurrent->next = newPos;  // append to the list
 			}
-			newPositionsCurrent = newPos;  // Move to the new node
+			newPositionsCurrent = newPos;  // move to the new node
 			posCurrent = posCurrent->next;
 		}
 
-		newHead->positions = newPositionsHead;  // Assign copied positions to the new head node
+		newHead->positions = newPositionsHead;  // assign copied positions to the new head node
 
-		// Now, copy the rest of the linked list
+		// copy the rest of the linked list
 		Index::ValueNode* current = head->next;
 		Index::ValueNode* newCurrent = newHead;
 		while (current) {
-			// Copy the current ValueNode
+			// copy the current ValueNode
 			Index::ValueNode* newNode = new Index::ValueNode(current->value);
 
 			// Copy the positions linked list for the new node
@@ -289,33 +329,33 @@ public:
 			while (posCurrent) {
 				Index::Node* newPos = new Index::Node(posCurrent->position);
 				if (!newPositionsHead) {
-					newPositionsHead = newPos;  // First position node
+					newPositionsHead = newPos;  // 1st position node
 				}
 				else {
-					newPositionsCurrent->next = newPos;  // Append to the list
+					newPositionsCurrent->next = newPos;  // append to the list
 				}
-				newPositionsCurrent = newPos;  // Move to the new node
+				newPositionsCurrent = newPos;  // move to the new node
 				posCurrent = posCurrent->next;
 			}
 
-			newNode->positions = newPositionsHead;  // Assign copied positions to the new node
+			newNode->positions = newPositionsHead;  // assign copied positions to the new node
 
-			// Link the new node to the rest of the list
+			// link the new node to the rest of the list
 			newCurrent->next = newNode;
-			newCurrent = newNode;  // Move to the next node
+			newCurrent = newNode;  // move to the next node
 
-			// Move to the next original node
+			// move to the next original node
 			current = current->next;
 		}
 
-		return newHead;  // Return the new head node of the copied list
+		return newHead;  //return the new head node of the copied list
 	}
 
 	Iterator createIterator() {
 		return Iterator(head);
 	}
 
-private:
+public:
 	void clear() {
 		while (head) {
 			ValueNode* temp = head;
@@ -347,7 +387,34 @@ public:
 		delete[] indexes;
 	}
 
-	void createIndex(const std::string& indexName, const std::string& tableName, const std::string& columnName) {
+	void addValue(const string& indexName, const string& value, int position) {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexes[i]->getIndexName() == indexName) {
+				indexes[i]->addValue(value, position);
+				return;
+			}
+		}
+	}
+
+	void removeValue(const string& indexName, const string& value, int position) {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexes[i]->getIndexName() == indexName) {
+				indexes[i]->removeValue(value, position);
+				return;
+			}
+		}
+	}
+
+	void clear(const string& indexName) {
+		for (int i = 0; i < noIndexes; ++i) {
+			if (indexes[i]->getIndexName() == indexName) {
+				indexes[i]->clear();
+				return;
+			}
+		}
+	}
+
+	void createIndex(const string& indexName, const string& tableName, const string& columnName) {
 		Index** newIndexes = new Index * [noIndexes + 1];
 		for (int i = 0; i < noIndexes; ++i) {
 			newIndexes[i] = indexes[i];
@@ -358,7 +425,7 @@ public:
 		noIndexes++;
 	}
 
-	void deleteIndex(const std::string& indexName) {
+	void deleteIndex(const string& indexName) {
 		int indexToDelete = -1;
 		for (int i = 0; i < noIndexes; ++i) {
 			if (indexes[i]->getIndexName() == indexName) {
@@ -367,7 +434,7 @@ public:
 			}
 		}
 		if (indexToDelete == -1) {
-			std::cout << "Index: " << indexName << " not found.\n";
+			cout << "Index: " << indexName << " not found.\n";
 			return;
 		}
 
@@ -388,48 +455,62 @@ public:
 	bool addValueToIndex(const string& indexName, const string& value, int position) {
 		for (int i = 0; i < noIndexes; ++i) {
 			if (indexes[i]->getIndexName() == indexName) {
-				// Directly add the value and position to the index
+				//directly add the value and position to the index
 				indexes[i]->addValue(value, position);
-				return true; // Successfully added
+				return true; // successfully added
 			}
 		}
 
-		// If index not found, log an error
+		// if index not found
 		cerr << "Error: Index '" << indexName << "' not found." << endl;
 		return false;
 	}
 
-	Index* getIndex(const std::string& indexName) const {
+	Index getIndex(const string& indexName) const {
 		for (int i = 0; i < noIndexes; ++i) {
 			if (indexes[i]->getIndexName() == indexName) {
-				return indexes[i];
+				return *indexes[i]; // return a copy of the Index object
 			}
 		}
-		return nullptr;
+		throw runtime_error("Index not found");
 	}
 
-	Index* getIndexByColumnAndTable(const std::string& columnName, const std::string& tableName) const {
+	Index getIndexByColumnAndTable(const string& columnName, const string& tableName) const {
 		for (int i = 0; i < noIndexes; ++i) {
 			if (indexes[i]->getColumnName() == columnName && indexes[i]->getTableName() == tableName) {
-				return indexes[i];
+				return *indexes[i]; // return a copy
 			}
 		}
-		return nullptr;
+		throw runtime_error("Index not found");
 	}
 
-	// New getter function to access the indexes array
+	//getter function to access a copy of the indexes array
 	Index** getIndexes() const {
-		return indexes;
-	}
+		if (noIndexes == 0) {
+			return nullptr;
+		}
 
-	bool indexExistsByIndexName(const std::string& indexName) const {
-		return getIndex(indexName) != nullptr;
+		//create a new array to hold the copies of the indexes
+		Index** indexesCopy = new Index * [noIndexes];
+		for (int i = 0; i < noIndexes; ++i) {
+			indexesCopy[i] = new Index(*indexes[i]); //use copy constructor
+		}
+
+		return indexesCopy;
+	}
+	bool indexExistsByIndexName(const string& indexName) const {
+		try {
+			getIndex(indexName);
+			return true;
+		}
+		catch (const runtime_error&) {
+			return false;
+		}
 	}
 
 	void displayAllIndexes() const {
 		for (int i = 0; i < noIndexes; ++i) {
-			std::cout << "Index Name: " << indexes[i]->getIndexName() << ", Table Name: " << indexes[i]->getTableName() << ", Column Name: " << indexes[i]->getColumnName() << "\n";
-			indexes[i]->displayIndex();
+			cout << " '" << indexes[i]->getIndexName() << "' table: " << indexes[i]->getTableName() << " column: " << indexes[i]->getColumnName() << "\n";
 		}
 	}
 
@@ -444,7 +525,7 @@ private:
 	int noTables = 0;
 
 	TableNames* tableNames = nullptr;
-	int noIndexes = 0;
+	//int noIndexes = 0;
 
 	IndexManager indexManager;
 
@@ -593,42 +674,43 @@ public:
 		int index = getTableIndex(name);
 		database[index]->describeTable();
 	}
-	//void dropTable(const string& name, const string& tablesConfigAddress) {
-	//	if (!tableExists(name)) {
-	//		cout << "Error: Table '" << name << "' does not exist." << endl;
-	//		return;
-	//	}
+	void dropTable(const string& name, const string& tablesConfigAddress) {
+		if (!tableExists(name)) {
+			cout << "Error: Table '" << name << "' does not exist." << endl;
+			return;
+		}
 
-	//	int indexToRemove = getTableIndex(name);
-	//	if (indexToRemove == -1) return;
+		int indexToRemove = getTableIndex(name);
+		if (indexToRemove == -1) return;
 
-	//	// Check for indexes and remove them
-	//	while (indexes->indexExistsByTableName(name)) {
-	//		indexes->removeIndexByTableName(name);
-	//	}
+		//remove all indexes associated with the table
+		for (int i = 0; i < indexManager.getNoIndexes(); ++i) {
+			Index** indexes = indexManager.getIndexes();
+			Index* index = indexes[i];
+			if (index->getTableName() == name) {
+				indexManager.deleteIndex(index->getIndexName());
+				--i; //adjust the index after deletion
+			}
+		}
 
-	//	// Delete the table
-	//	delete database[indexToRemove];
+		delete database[indexToRemove];
 
-	//	// Shift remaining table pointers to the left
-	//	for (int i = indexToRemove; i < noTables - 1; i++) {
-	//		database[i] = database[i + 1];
-	//	}
+		for (int i = indexToRemove; i < noTables - 1; i++) {
+			database[i] = database[i + 1];
+		}
 
-	//	noTables--;
-	//	database[noTables] = nullptr; // Set last element to nullptr to avoid dangling pointer
+		noTables--;
+		database[noTables] = nullptr;
 
-	//	// Also remove the table name from tableNames
-	//	tableNames->removeName(name);
+		tableNames->removeName(name);
 
-	//	// Remove the table file
-	//	string filename = tablesConfigAddress + name + ".bin";
-	//	if (filesystem::exists(filename)) {
-	//		filesystem::remove(filename);
-	//	}
+		string filename = tablesConfigAddress + name + ".bin";
+		if (filesystem::exists(filename)) {
+			filesystem::remove(filename);
+		}
 
-	//	cout << "Table '" << name << "' dropped successfully." << endl;
-	//}
+		cout << "Table '" << name << "' dropped successfully." << endl;
+	}
 	void insertIntoTable(const string& name, const string* values, int noValues) {
 		// Check if the table exists
 		if (!tableExists(name)) {
@@ -659,10 +741,10 @@ public:
 		// Update indexes only if the row was successfully added
 		for (int i = 0; i < noValues; i++) {
 			const string& columnName = table->getColumn(i).getName();
-			Index* index = indexManager.getIndexByColumnAndTable(columnName, name); // Pass column name and table name
-			if (index != nullptr) {
+			try {
+				Index index = indexManager.getIndexByColumnAndTable(columnName, name); // Pass column name and table name
 				try {
-					index->addValue(values[i], newRowId);
+					indexManager.addValue(index.getIndexName(), values[i], newRowId);
 				}
 				catch (const invalid_argument& e) {
 					cout << "Error: Invalid value for column '" << columnName << "': " << values[i] << endl;
@@ -670,6 +752,9 @@ public:
 				catch (const out_of_range& e) {
 					cout << "Error: Value out of range for column '" << columnName << "': " << values[i] << endl;
 				}
+			}
+			catch (const std::runtime_error& e) {
+				// No index for this column, skip updating
 			}
 		}
 	}
@@ -773,7 +858,6 @@ public:
 		}
 		std::cout << std::endl;
 	}
-	// Updated selectWHERE function
 	void selectWHERE(const string& tableName, const string* columnNames, int noColumns, const string& conditionColumn, const string& value, const string& selectCommandsAddress) {
 		selectCount++;
 
@@ -796,23 +880,26 @@ public:
 			return;
 		}
 
-		// Check if there is an index on the condition column
-		Index* index = indexManager.getIndexByColumnAndTable(conditionColumn, tableName);
 		int* rows = nullptr;
 		int rowCount = 0;
 
-		if (index != nullptr) {
+		try {
+			// Check if there is an index on the condition column
+			Index index = indexManager.getIndexByColumnAndTable(conditionColumn, tableName);
+
 			// Use the index to get the rows
 			cout << "Using index for column: " << conditionColumn << endl;
-			rowCount = index->getRowCount(value);
+			rowCount = index.getRowCount(value);
 			if (rowCount > 0) {
 				rows = new int[rowCount];
-				index->getKeys(value, rows, rowCount);
+				index.getKeys(value, rows, rowCount);
 			}
 		}
-		else {
+		catch (const std::runtime_error& e) {
+			// Handle the case where the index is not found
+			cout << "Scanning table for column '" << conditionColumn << "'." << endl;
+
 			// No index, scan the table
-			cout << "Scanning table for matches in column: " << conditionColumn << endl;
 			rowCount = table->getNoRows();
 			rows = new int[rowCount];
 			int rowIndex = 0;
@@ -974,9 +1061,12 @@ public:
 		}
 
 		// Check if an index already exists on the specified column in the table
-		if (indexManager.getIndexByColumnAndTable(columnName, tableName) != nullptr) {
+		try {
+			Index index = indexManager.getIndexByColumnAndTable(columnName, tableName);
 			cout << endl << "Error: An index already exists on column '" << columnName << "' in table '" << tableName << "'.";
 			return;
+		}
+		catch (const std::runtime_error& e) {
 		}
 
 		// Create the index
@@ -986,203 +1076,182 @@ public:
 		int columnIndex = table->getColumnIndex(columnName);
 		for (int i = 0; i < table->getNoRows(); ++i) {
 			Row& row = table->getRow(i);
-			string value = row.getTextData(columnIndex); // Assuming the column type is TEXT for simplicity
-			indexManager.getIndex(indexName)->addValue(value, i);
+			string value = row.getTextData(columnIndex);
+			indexManager.addValue(indexName, value, i);
 		}
 
 		cout << endl << "Index '" << indexName << "' created successfully on column '" << columnName << "' in table '" << tableName << "'.";
 	}
-	//void deleteRowFromTable(const string& name, const string& columnName, const string& value) {
-	//	if (!tableExists(name)) {
-	//		cout << "Error: Table '" << name << "' does not exist." << endl;
-	//		return;
-	//	}
+	void deleteRowFromTable(const string& tableName, const string& columnName, const string& value) {
+		// Validate table existence
+		if (!tableExists(tableName)) {
+			cout << "Error: Table '" << tableName << "' does not exist." << endl;
+			return;
+		}
 
-	//	int tableIndex = getTableIndex(name);
-	//	Table* table = database[tableIndex];
+		int tableIndex = getTableIndex(tableName);
+		if (tableIndex == -1) {
+			cout << "Error: Table '" << tableName << "' not found." << endl;
+			return;
+		}
 
-	//	int columnIndex = table->getColumnIndex(columnName);
-	//	if (columnIndex == -1) {
-	//		cout << "Error: Column '" << columnName << "' does not exist in table '" << name << "'." << endl;
-	//		return;
-	//	}
+		Table* table = database[tableIndex];
+		int columnIndex = table->getColumnIndex(columnName);
+		if (columnIndex == -1) {
+			cout << "Error: Column '" << columnName << "' does not exist in table: " << tableName << endl;
+			return;
+		}
 
-	//	ColumnType columnType = table->getColumn(columnName).getType();
+		int* rows = nullptr;
+		int rowCount = 0;
 
-	//	// Check if there is an index on the column
-	//	Index* index = indexes->getIndexObjectByTableNameAndColumnName(name, columnName);
-	//	if (index != nullptr) {
-	//		// Use the index to find the rows
-	//		cout << "Using index" << endl;
-	//		int rowCount = 0;
-	//		int* rows = index->getKeys(value, rowCount);
-	//		if (rowCount > 0) {
-	//			for (int i = 0; i < rowCount; i++) {
-	//				table->deleteRow(rows[i]);
-	//			}
-	//			cout << "Rows deleted successfully." << endl;
-	//			delete[] rows;
-	//			return;
-	//		}
-	//		delete[] rows;
-	//	}
-	//	else {
-	//		// No index, scan the table
-	//		bool rowDeleted = false;
-	//		for (int i = 0; i < table->getNoRows(); i++) {
-	//			Row& row = table->getRow(i);
-	//			switch (columnType) {
-	//			case INT:
-	//				if (row.getIntData(columnIndex) == stoi(value)) {
-	//					table->deleteRow(i);
-	//					rowDeleted = true;
-	//					i--; // Adjust index after deletion
-	//				}
-	//				break;
-	//			case TEXT:
-	//				if (row.getTextData(columnIndex) == value) {
-	//					table->deleteRow(i);
-	//					rowDeleted = true;
-	//					i--; // Adjust index after deletion
-	//				}
-	//				break;
-	//			case FLOAT:
-	//				if (row.getFloatData(columnIndex) == stof(value)) {
-	//					table->deleteRow(i);
-	//					rowDeleted = true;
-	//					i--; // Adjust index after deletion
-	//				}
-	//				break;
-	//			default:
-	//				cout << "Error: Unsupported column type." << endl;
-	//				return;
-	//			}
-	//		}
-	//		if (rowDeleted) {
-	//			cout << "Rows deleted successfully." << endl;
-	//			return;
-	//		}
-	//	}
+		try {
+			// Check if there is an index on the column
+			Index index = indexManager.getIndexByColumnAndTable(columnName, tableName);
 
-	//	cout << "Error: Row with value '" << value << "' not found in column '" << columnName << "'." << endl;
-	//}
-	//void updateTable(const string& tableName, const string& setColumnName, const string& setValue, const string& whereColumnName, const string& whereValue) {
-	//	if (!tableExists(tableName)) {
-	//		cout << "Error: Table '" << tableName << "' does not exist." << endl;
-	//		return;
-	//	}
+			// Use the index to get the rows
+			cout << "Using index for column: " << columnName << endl;
+			rowCount = index.getRowCount(value);
+			if (rowCount > 0) {
+				rows = new int[rowCount];
+				index.getKeys(value, rows, rowCount);
+			}
+		}
+		catch (const std::runtime_error& e) {
+			// Handle the case where the index is not found
+			cout << "Scanning table for column '" << columnName << "'." << endl;
 
-	//	int tableIndex = getTableIndex(tableName);
-	//	Table* table = database[tableIndex];
+			// No index, scan the table
+			rowCount = table->getNoRows();
+			rows = new int[rowCount];
+			int rowIndex = 0;
+			for (int i = 0; i < rowCount; i++) {
+				if (table->getRow(i).getTextData(columnIndex) == value) {
+					rows[rowIndex++] = i;
+				}
+			}
+			rowCount = rowIndex; // Update count to matched rows
+		}
 
-	//	int setColumnIndex;
-	//	int whereColumnIndex;
+		if (rowCount == 0) {
+			cout << "No rows found with " << columnName << " = " << value << endl;
+			delete[] rows;
+			return;
+		}
 
-	//	bool setColumnHasIndex = indexes->indexExistsByTableName(tableName) && indexes->getIndexColumnName(tableName) == setColumnName;
-	//	bool whereColumnHasIndex = indexes->indexExistsByTableName(tableName) && indexes->getIndexColumnName(tableName) == whereColumnName;
+		// Delete the rows
+		for (int i = 0; i < rowCount; i++) {
+			int rowToDelete = rows[i];
+			table->deleteRow(rowToDelete);
+			cout << "Row deleted successfully." << endl;
 
-	//	if (setColumnHasIndex) {
-	//		setColumnIndex = table->getColumnIndex(setColumnName);
-	//		if (!table->columnExistsByIndex(setColumnIndex)) {
-	//			cout << "Error: Column with index '" << setColumnIndex << "' does not exist in table '" << tableName << "'." << endl;
-	//			return;
-	//		}
-	//	}
-	//	else {
-	//		if (!table->columnExists(setColumnName)) {
-	//			cout << "Error: Column '" << setColumnName << "' does not exist in table '" << tableName << "'." << endl;
-	//			return;
-	//		}
-	//		setColumnIndex = table->getColumnIndex(setColumnName);
-	//	}
+			// Adjust subsequent row indices in rows array
+			for (int k = i + 1; k < rowCount; k++) {
+				if (rows[k] > rowToDelete) {
+					rows[k]--;
+				}
+			}
+		}
 
-	//	if (whereColumnHasIndex) {
-	//		whereColumnIndex = table->getColumnIndex(whereColumnName);
-	//		if (!table->columnExistsByIndex(whereColumnIndex)) {
-	//			cout << "Error: Column with index '" << whereColumnIndex << "' does not exist in table '" << tableName << "'." << endl;
-	//			return;
-	//		}
-	//	}
-	//	else {
-	//		if (!table->columnExists(whereColumnName)) {
-	//			cout << "Error: Column '" << whereColumnName << "' does not exist in table '" << tableName << "'." << endl;
-	//			return;
-	//		}
-	//		whereColumnIndex = table->getColumnIndex(whereColumnName);
-	//	}
+		// Recreate indexes for all columns that had an index
+		for (int colIndex = 0; colIndex < table->getNoColumns(); colIndex++) {
+			string colName = table->getColumn(colIndex).getName();
+			try {
+				Index index = indexManager.getIndexByColumnAndTable(colName, tableName);
+				index.clear(); // Clear the existing index
 
-	//	ColumnType setColumnType = table->getColumnType(setColumnIndex);
-	//	int setColumnSize = table->getColumnSize(setColumnIndex);
+				// Recreate the index
+				for (int rowIndex = 0; rowIndex < table->getNoRows(); rowIndex++) {
+					index.addValue(table->getRow(rowIndex).getTextData(colIndex), rowIndex);
+				}
+				cout << "Recreated index for column: " << colName << endl;
+			}
+			catch (const std::runtime_error& e) {
+				// No index for this column, skip updating
+			}
+		}
 
-	//	try {
-	//		switch (setColumnType) {
-	//		case INT:
-	//			if (!isValidInt(setValue)) {
-	//				throw invalid_argument("Set value must be a valid integer.");
-	//			}
-	//			if (setValue.size() > setColumnSize) {
-	//				throw invalid_argument("Set value exceeds the maximum size for the integer column.");
-	//			}
-	//			break;
-	//		case FLOAT:
-	//			if (!isValidFloat(setValue)) {
-	//				throw invalid_argument("Set value must be a valid float.");
-	//			}
-	//			if (setValue.size() > setColumnSize) {
-	//				throw invalid_argument("Set value exceeds the maximum size for the float column.");
-	//			}
-	//			break;
-	//		case TEXT:
-	//			if (setValue.size() > setColumnSize) {
-	//				throw invalid_argument("Set value exceeds the maximum size for the text column.");
-	//			}
-	//			break;
-	//		default:
-	//			throw invalid_argument("Unsupported column type.");
-	//		}
-	//	}
-	//	catch (const invalid_argument& e) {
-	//		cout << "Error: " << e.what() << endl;
-	//		return;
-	//	}
+		// Cleanup
+		delete[] rows;
+	}
+	void updateTable(const string& tableName, const string& setColumnName, const string& setValue, const string& whereColumnName, const string& whereValue) {
+		if (!tableExists(tableName)) {
+			cout << "Error: Table '" << tableName << "' does not exist." << endl;
+			return;
+		}
 
-	//	int updatedRows = 0;
-	//	if (whereColumnHasIndex) {
-	//		Index* index = indexes->getIndexObjectByTableNameAndColumnName(tableName, whereColumnName);
-	//		int keyCount;
-	//		int* rowIds = index->getKeys(whereValue, keyCount);
-	//		for (int i = 0; i < keyCount; i++) {
-	//			Row& row = table->getRow(rowIds[i]);
-	//			row.setStringData(setColumnIndex, setValue);
-	//			updatedRows++;
-	//		}
-	//		delete[] rowIds;
-	//	}
-	//	else {
-	//		for (int i = 0; i < table->getNoRows(); i++) {
-	//			Row& row = table->getRow(i);
-	//			if (row.getTextData(whereColumnIndex) == whereValue) {
-	//				row.setStringData(setColumnIndex, setValue);
-	//				updatedRows++;
-	//			}
-	//		}
-	//	}
+		int tableIndex = getTableIndex(tableName);
+		Table* table = database[tableIndex];
 
-	//	// Update the index if the set column has an index
-	//	if (setColumnHasIndex) {
-	//		Index* setIndex = indexes->getIndexObjectByTableNameAndColumnName(tableName, setColumnName);
-	//		for (int i = 0; i < table->getNoRows(); i++) {
-	//			Row& row = table->getRow(i);
-	//			if (row.getTextData(whereColumnIndex) == whereValue) {
-	//				setIndex->removeRecord(i, row.getTextData(setColumnIndex));
-	//				setIndex->addRecord(i, setValue);
-	//			}
-	//		}
-	//	}
+		int setColumnIndex = table->getColumnIndex(setColumnName);
+		int whereColumnIndex = table->getColumnIndex(whereColumnName);
 
-	//	cout << "Updated " << updatedRows << " rows in table '" << tableName << "' by setting " << setColumnName << " to '" << setValue << "' where " << whereColumnName << " is '" << whereValue << "'." << endl;
-	//}
-	/*void alterTableAddColumn(const string& tableName, const Column& newColumn) {
+		if (setColumnIndex == -1) {
+			cout << "Error: Column '" << setColumnName << "' does not exist in table '" << tableName << "'." << endl;
+			return;
+		}
+
+		if (whereColumnIndex == -1) {
+			cout << "Error: Column '" << whereColumnName << "' does not exist in table '" << tableName << "'." << endl;
+			return;
+		}
+
+		int updatedRows = 0;
+		int* rowIds = nullptr;
+		int keyCount = 0;
+
+		try {
+			// Use index to get rows for whereColumnName
+			Index whereIndex = indexManager.getIndexByColumnAndTable(whereColumnName, tableName);
+			keyCount = whereIndex.getRowCount(whereValue);
+			if (keyCount > 0) {
+				rowIds = new int[keyCount];
+				whereIndex.getKeys(whereValue, rowIds, keyCount);
+			}
+			cout << "Using index for column: " << whereColumnName << endl;
+		}
+		catch (const std::runtime_error& e) {
+			// No index, scan the table
+			keyCount = table->getNoRows();
+			rowIds = new int[keyCount];
+			int rowIndex = 0;
+			for (int i = 0; i < keyCount; i++) {
+				if (table->getRow(i).getTextData(whereColumnIndex) == whereValue) {
+					rowIds[rowIndex++] = i;
+				}
+			}
+			keyCount = rowIndex; // Update count to matched rows
+			cout << "Scanning table for column '" << whereColumnName << "'." << endl;
+		}
+
+		// Update the rows
+		for (int i = 0; i < keyCount; i++) {
+			Row& row = table->getRow(rowIds[i]);
+			row.setStringData(setColumnIndex, setValue);
+			updatedRows++;
+		}
+
+		// Update the index for the set column if it exists
+		try {
+			Index index = indexManager.getIndexByColumnAndTable(setColumnName, tableName);
+			indexManager.clear(index.getIndexName()); // Clear the existing index
+
+			// Recreate the index
+			for (int rowIndex = 0; rowIndex < table->getNoRows(); rowIndex++) {
+				indexManager.addValue(index.getIndexName(), table->getRow(rowIndex).getTextData(setColumnIndex), rowIndex);
+			}
+			cout << "Recreated index for column: " << setColumnName << endl;
+		}
+		catch (const std::runtime_error& e) {
+			// No index for this column, skip updating
+		}
+
+		cout << "Updated " << updatedRows << " rows in table '" << tableName << "' by setting " << setColumnName << " to '" << setValue << "' where " << whereColumnName << " is '" << whereValue << "'." << endl;
+
+		// Cleanup
+		delete[] rowIds;
+	}
+	void alterTableAddColumn(const string& tableName, const Column& newColumn) {
 		if (!tableExists(tableName)) {
 			cout << endl << "Error: Table '" << tableName << "' does not exist.";
 			return;
@@ -1210,47 +1279,64 @@ public:
 		}
 
 		int columnIndex = table->getColumnIndex(columnName);
-		bool hasIndex = indexes->indexExistsByTableName(tableName) && indexes->getIndexColumnName(tableName) == columnName;
 
-		if (hasIndex) {
-			indexes->removeIndexByTableNameAndColumnName(tableName, columnName);
-			cout << endl << "Index on column '" << columnName << "' in table '" << tableName << "' removed successfully.";
+		//remove all indexes associated with the column
+		for (int i = 0; i < indexManager.getNoIndexes(); ++i) {
+			Index** indexes = indexManager.getIndexes();
+			Index* index = indexes[i];
+			if (index->getTableName() == tableName && index->getColumnName() == columnName) {
+				indexManager.deleteIndex(index->getIndexName());
+				cout << endl << "Index on column '" << columnName << "' in table '" << tableName << "' removed successfully.";
+				--i; //adjust the index after deletion
+			}
 		}
 
 		table->deleteColumnByIndex(columnIndex);
 		cout << endl << "Column '" << columnName << "' deleted from table '" << tableName << "' successfully.";
-	}*/
-	/*void dropIndex(const string& indexName) {
-		if (indexes->getIndexObjectByIndexName(indexName) == nullptr) {
+	}
+	void dropIndex(const string& indexName) {
+		if (!indexManager.indexExistsByIndexName(indexName)) {
 			cout << endl << "Error: Index with name '" << indexName << "' does not exist.";
 			return;
 		}
 
-		indexes->removeIndexByIndexName(indexName);
+		indexManager.deleteIndex(indexName);
 		cout << endl << "Index with name '" << indexName << "' removed successfully.";
 	}
 	void showTables() const {
 		if (noTables == 0) {
-			cout << endl << "No tables found.";
+			cout << "No tables found.";
 			return;
 		}
 
-		cout << endl << "My Tables:";
+		cout << "My Tables:";
 		for (int i = 0; i < noTables; i++) {
 			cout << endl << i + 1 << ". " << database[i]->getName();
 		}
 	}
 	void showIndexFromTable(const string& tableName) const {
 		if (!tableExists(tableName)) {
-			cout << "Error: Table '" << tableName << "' does not exist." << endl;
+			cout << endl << "Error: Table: " << "'" << tableName << "'" << " does not exist.";
 			return;
 		}
 
-		indexes->displayIndexesFromTable(tableName);
+		bool found = false;
+		for (int i = 0; i < indexManager.getNoIndexes(); ++i) {
+			Index** indexes = indexManager.getIndexes();
+			Index* index = indexes[i];
+			if (index->getTableName() == tableName) {
+				cout << "Index Name: " << index->getIndexName() << ", Column Name: " << index->getColumnName() << "\n";
+				index->displayIndex();
+				found = true;
+			}
+		}
+		if (!found) {
+			cout << "Error: No indexes found for table '" << tableName << "'." << endl;
+		}
 	}
 	void showIndexFromAll() const {
-		indexes->displayAllIndexes();
-	}*/
+		indexManager.displayAllIndexes();
+	}
 	//ALTA CLASA PT ASTEA 2
 	void printHelpMenu() {
 		string commands[] = {
@@ -1997,7 +2083,7 @@ private:
 				return;
 			}
 
-			//db->dropTable(tableName, tablesConfigAddress);
+			db->dropTable(tableName, tablesConfigAddress);
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2187,7 +2273,7 @@ private:
 				return;
 			}
 
-			//db->deleteRowFromTable(tableName, columnName, value);
+			db->deleteRowFromTable(tableName, columnName, value);
 
 			delete[] whereParts;
 		}
@@ -2492,7 +2578,7 @@ private:
 				return;
 			}
 
-			//db->updateTable(tableName, setColumnName, setValue, whereColumnName, whereValue);
+			db->updateTable(tableName, setColumnName, setValue, whereColumnName, whereValue);
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2595,7 +2681,7 @@ private:
 
 			Column newColumn(columnName, columnType, columnSize, defaultValue);
 
-			//db->alterTableAddColumn(tableName, newColumn);
+			db->alterTableAddColumn(tableName, newColumn);
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2637,7 +2723,7 @@ private:
 				return;
 			}
 
-			//db->alterTableDeleteColumn(tableName, columnName);
+			db->alterTableDeleteColumn(tableName, columnName);
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2755,7 +2841,7 @@ private:
 				return;
 			}
 
-			//db->dropIndex(indexName);
+			db->dropIndex(indexName);
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2772,7 +2858,7 @@ private:
 				return;
 			}
 
-			//db->showTables();
+			db->showTables();
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2805,7 +2891,7 @@ private:
 				return;
 			}
 
-			//	db->showIndexFromTable(tableName);
+			db->showIndexFromTable(tableName);
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2822,7 +2908,7 @@ private:
 				return;
 			}
 
-			//db->showIndexFromAll();
+			db->showIndexFromAll();
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
@@ -2985,12 +3071,12 @@ public:
 	}
 };
 
-const string FileManager::TABLES_CONFIG_ADDRESS = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\tables_config\\";
-const string FileManager::SELECT_COMMANDS_ADDRESS = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\select_commands\\";
+const string FileManager::TABLES_CONFIG_ADDRESS = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\tables_config\\";
+const string FileManager::SELECT_COMMANDS_ADDRESS = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\select_commands\\";
 const int FileManager::MAX_COMMANDS_FILES = 5;
 const string FileManager::START_COMMANDS_ADDRESSES[FileManager::MAX_COMMANDS_FILES] = {
-	"D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\start_commands\\commands1.txt",
-	"D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\start_commands\\commands2.txt"
+	"D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\start_commands\\commands1.txt",
+	"D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\start_commands\\commands2.txt"
 };
 
 int main() {
