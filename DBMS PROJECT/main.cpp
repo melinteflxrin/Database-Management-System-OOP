@@ -11,7 +11,7 @@
 using namespace std;
 
 class Index {
-public:
+private:
 	struct Node {               // Node for linked list to store positions
 		int position;           // Position of the value in the column
 		Node* next;
@@ -24,13 +24,83 @@ public:
 		ValueNode* next;
 		ValueNode(const string& val) : value(val), positions(nullptr), next(nullptr) {}
 	};
-private:
+
 	string indexName;      // Name of the index
 	string tableName;      // Name of the table the index belongs to
 	string columnName;     // Name of the column the index refers to
 	ValueNode* head;            // Head of the linked list for values
 
 public:
+	// Iterator for traversing the ValueNode list
+	class ValueIterator {
+	private:
+		ValueNode* current;
+	public:
+		ValueIterator(ValueNode* node) : current(node) {}
+
+		bool hasNext() const {
+			return current != nullptr;
+		}
+
+		std::string nextValue() {
+			if (current) {
+				std::string value = current->value;
+				current = current->next;
+				return value;
+			}
+			throw std::out_of_range("No more values.");
+		}
+
+		void getPositions(int*& positions, int& count) const {
+			count = 0;
+			if (current) {
+				Node* pos = current->positions;
+				while (pos) {
+					count++;
+					pos = pos->next;
+				}
+
+				positions = new int[count];
+				pos = current->positions;
+				for (int i = 0; i < count; ++i) {
+					positions[i] = pos->position;
+					pos = pos->next;
+				}
+			}
+			else {
+				positions = nullptr;
+			}
+		}
+	};
+
+	// Public method to get an iterator for the values
+	ValueIterator getValues() const {
+		return ValueIterator(head);
+	}
+
+public:
+	// Helper function to create a copy of the positions list
+	static Node* copyPositions(Node* original) {
+		if (!original) return nullptr;
+
+		Node* head = new Node(original->position);
+		Node* current = head;
+		Node* originalCurrent = original->next;
+
+		while (originalCurrent) {
+			Node* newNode = new Node(originalCurrent->position);
+			current->next = newNode;
+			current = newNode;
+			originalCurrent = originalCurrent->next;
+		}
+
+		return head;
+	}
+	// Public method to return a copy of the positions
+	Node* getPositionsCopy(ValueNode* valueNode) const {
+		return valueNode ? copyPositions(valueNode->positions) : nullptr;
+	}
+
 	Index() : head(nullptr) {}
 
 	Index(const std::string& indexName, const std::string& tableName, const std::string& columnName)
@@ -69,6 +139,22 @@ public:
 
 	~Index() {
 		clear();
+	}
+
+	ValueNode* reverseList() {
+		ValueNode* current = head;
+		ValueNode* prev = nullptr;
+		ValueNode* next = nullptr;
+
+		while (current) {
+			next = current->next;
+			current->next = prev;
+			prev = current;
+			current = next;
+		}
+
+		head = prev;
+		return head;
 	}
 
 	void addValue(const std::string& value, int position) {
@@ -1359,46 +1445,31 @@ public:
 					outFile.write(index->getColumnName().c_str(), columnNameLength);
 					cout << "Column Name: " << index->getColumnName() << endl;
 
-					//write the values and their positions
-					//reverse the list in-place while saving
-					Index::ValueNode* current = index->getHead();
-					Index::ValueNode* prev = nullptr;
-					Index::ValueNode* next = nullptr;
+					index->reverseList();
+					Index::ValueIterator iter = index->getValues();
 
-					//reverse the list (in-place)
-					while (current) {
-						next = current->next;
-						current->next = prev;
-						prev = current;
-						current = next;
-					}
-
-					//now prev is the new head, and the list is reversed
-					current = prev;
-
-					while (current) {
-						int valueLength = current->value.length();
+					while (iter.hasNext()) {
+						std::string value = iter.nextValue();
+						int valueLength = value.length();
 						outFile.write(reinterpret_cast<const char*>(&valueLength), sizeof(valueLength));
-						outFile.write(current->value.c_str(), valueLength);
-						cout << "Value: " << current->value << endl;
+						outFile.write(value.c_str(), valueLength);
+						std::cout << "Value: " << value << std::endl;
 
-						//write the positions
-						Index::Node* pos = current->positions;
+						//get the positions for the current value node
+						int* positions = nullptr;
 						int positionCount = 0;
-						Index::Node* tempPos = pos;
-						while (tempPos) {
-							positionCount++;
-							tempPos = tempPos->next;
-						}
-						outFile.write(reinterpret_cast<const char*>(&positionCount), sizeof(positionCount));
-						cout << "Position Count: " << positionCount << endl;
+						iter.getPositions(positions, positionCount);
 
-						while (pos) {
-							outFile.write(reinterpret_cast<const char*>(&pos->position), sizeof(pos->position));
-							cout << "Position: " << pos->position << endl;
-							pos = pos->next;
+						outFile.write(reinterpret_cast<const char*>(&positionCount), sizeof(positionCount));
+						std::cout << "Position Count: " << positionCount << std::endl;
+
+						for (int i = 0; i < positionCount; ++i) {
+							outFile.write(reinterpret_cast<const char*>(&positions[i]), sizeof(positions[i]));
+							std::cout << "Position: " << positions[i] << std::endl;
 						}
-						current = current->next;
+
+						//cleanup: free the positions array
+						delete[] positions;
 					}
 
 					//write an end marker to indicate the end of the current index
