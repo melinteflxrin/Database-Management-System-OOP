@@ -12,6 +12,12 @@
 
 using namespace std;
 
+class Command {
+public:
+	virtual void execute(Database& db) = 0;
+	virtual ~Command() = default;
+};
+
 class Database {          //many tabless
 private:
 	Table** database = nullptr;
