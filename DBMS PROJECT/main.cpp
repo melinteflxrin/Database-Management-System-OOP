@@ -83,6 +83,33 @@ public:
 	virtual ~Command() = default;
 };
 
+class selectCommands : public Command {
+protected:
+	string selectCommandsAddress;
+	static int selectCount;
+public:
+	selectCommands() {
+		this->selectCommandsAddress = "";
+	}
+	selectCommands(const string& selectCommandsAddress) {
+		this->selectCommandsAddress = selectCommandsAddress;
+	}
+	selectCommands(const selectCommands& sc) {
+		this->selectCommandsAddress = sc.selectCommandsAddress;
+	}
+	selectCommands& operator=(const selectCommands& sc) {
+		if (this == &sc) {
+			return *this;
+		}
+		this->selectCommandsAddress = sc.selectCommandsAddress;
+		return *this;
+	}
+	//--------------------------------------------------
+	virtual void execute(Database& db) = 0;
+	virtual ~selectCommands() = default;
+};
+int selectCommands::selectCount = 0;
+
 class createTable : public Command {
 private:
 	string name;
