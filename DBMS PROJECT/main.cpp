@@ -166,9 +166,6 @@ private:
 
 	IndexManager indexManager;
 
-	//remove this later
-	static int selectCount;
-
 public:
 	//DEFAULT CONSTRUCTOR
 	Database() {
@@ -210,7 +207,7 @@ public:
 			throw;
 		}
 	}
-	//--------------------------------------------------
+	//EXECUTE COMMANDS
 	void addTableToDatabase(const Table& table) {
 		Table** newDatabase = new Table * [noTables + 1];
 
@@ -381,7 +378,6 @@ public:
 
 		cout << endl << "Index '" << indexName << "' created successfully on column '" << columnName << "' in table '" << tableName << "'.";
 	}
-	//--------------------------------------------------
 	void deleteRowFromTable(const string& tableName, const string& columnName, const string& value) {
 		// Validate table existence
 		if (!tableExists(tableName)) {
@@ -602,40 +598,6 @@ public:
 		indexManager.deleteIndex(indexName);
 		cout << endl << "Index with name '" << indexName << "' removed successfully.";
 	}
-	void showTables() const {
-		if (noTables == 0) {
-			cout << "No tables found.";
-			return;
-		}
-
-		cout << "My Tables:";
-		for (int i = 0; i < noTables; i++) {
-			cout << endl << i + 1 << ". " << database[i]->getName();
-		}
-	}
-	void showIndexFromTable(const string& tableName) const {
-		if (!tableExists(tableName)) {
-			cout << endl << "Error: Table: " << "'" << tableName << "'" << " does not exist.";
-			return;
-		}
-
-		bool found = false;
-		for (int i = 0; i < indexManager.getNoIndexes(); ++i) {
-			Index** indexes = indexManager.getIndexes();
-			Index* index = indexes[i];
-			if (index->getTableName() == tableName) {
-				cout << "Index Name: " << index->getIndexName() << ", Column Name: " << index->getColumnName() << "\n";
-				index->displayIndex();
-				found = true;
-			}
-		}
-		if (!found) {
-			cout << "Error: No indexes found for table '" << tableName << "'." << endl;
-		}
-	}
-	void showIndexFromAll() const {
-		indexManager.displayAllIndexes();
-	}
 	void importCSV(const string& tableName, const string& csvDirectory, const string& fileName, char delimiter) {
 		// Construct the full file path
 		string fullPath = csvDirectory + "/" + fileName;
@@ -714,123 +676,41 @@ public:
 		// Close the file
 		csvFile.close();
 	}
-	//ALTA CLASA PT ASTEA 2
-	void printHelpMenu() {
-		string commands[] = {
-			"CREATE TABLE",
-			"DESCRIBE TABLE",
-			"DROP TABLE",
-			"SELECT ALL",
-			"INSERT INTO VALUES",
-			"DELETE FROM WHERE",
-			"SELECT WHERE",
-			"SELECT",
-			"UPDATE TABLE",
-			"ALTER TABLE ADD COLUMN",
-			"ALTER TABLE DROP COLUMN",
-			"CREATE INDEX",
-			"DROP INDEX",
-			"SHOW TABLES",
-			"SHOW INDEX FROM",
-			"SHOW INDEX FROM ALL",
-			"clear",
-			"exit"
-		};
-
-		string descriptions[] = {
-			" Create a new table with specified columns and constraints.",
-			" Show the structure of an existing table.",
-			" Delete an existing table from the database.",
-			" Select all rows from a table.",
-			" Insert a new row into a table.",
-			" Delete rows from a table based on a condition.",
-			" Select specific columns from a table based on a condition.",
-			" Select specific columns from a table without conditions.",
-			" Update existing rows in a table based on a condition.",
-			"Add a new column to an existing table.",
-			"Drop an existing column from a table.",
-			"Create an index on a specified column of a table.",
-			"Drop an existing index from a table.",
-			"Show all the tables in the database.",
-			"Show indexes associated with a specific table.",
-			"Show all indexes in the database.",
-			"Clear the console screen.",
-			"Exit the program."
-		};
-
-		cout << "Available Commands:\n";
-		cout << "----------------------------------\n";
-
-		for (int i = 0; i < 18; ++i) {
-			cout << i + 1 << ". " << commands[i];
-			int spaces = 30 - commands[i].length();
-			for (int j = 0; j < spaces; ++j) {
-				cout << " "; // fill the space to align descriptions
-			}
-			cout << descriptions[i] << "\n\n";
+	void showTables() const {
+		if (noTables == 0) {
+			cout << "No tables found.";
+			return;
 		}
 
-		cout << "Type 'help 2' to see each command's syntax.\n";
+		cout << "My Tables:";
+		for (int i = 0; i < noTables; i++) {
+			cout << endl << i + 1 << ". " << database[i]->getName();
+		}
 	}
-	void printSyntaxMenu() {
-		std::cout << "========================== HELP MENU ==========================\n";
-		std::cout << "1. CREATE TABLE table_name (column_name, column_type, size, default_value)\n";
-		std::cout << "   - Creates a new table with the specified columns.\n";
-		std::cout << "\n";
-		std::cout << "2. DESCRIBE table_name\n";
-		std::cout << "   - Displays the structure of the specified table.\n";
-		std::cout << "\n";
-		std::cout << "3. DROP TABLE table_name\n";
-		std::cout << "   - Deletes the specified table.\n";
-		std::cout << "\n";
-		std::cout << "4. SELECT ALL FROM table_name\n";
-		std::cout << "   - Retrieves all rows from the specified table.\n";
-		std::cout << "\n";
-		std::cout << "5. INSERT INTO table_name VALUES (value1, value2, ...)\n";
-		std::cout << "   - Inserts new values into the specified table.\n";
-		std::cout << "\n";
-		std::cout << "6. DELETE FROM table_name WHERE condition\n";
-		std::cout << "   - Deletes rows from the table matching the condition.\n";
-		std::cout << "\n";
-		std::cout << "7. SELECT column1, column2, ... FROM table_name WHERE condition\n";
-		std::cout << "   - Retrieves specific columns from the table based on the condition.\n";
-		std::cout << "\n";
-		std::cout << "8. SELECT column1, column2, ... FROM table_name\n";
-		std::cout << "   - Retrieves specific columns from the table.\n";
-		std::cout << "\n";
-		std::cout << "9. UPDATE table_name SET column1 = value1, column2 = value2, ... WHERE condition\n";
-		std::cout << "   - Updates rows in the table that match the condition.\n";
-		std::cout << "\n";
-		std::cout << "10. ALTER TABLE table_name ADD (column_name, column_type, size, default_value)\n";
-		std::cout << "    - Adds a new column to the specified table.\n";
-		std::cout << "\n";
-		std::cout << "11. ALTER TABLE table_name DROP COLUMN column_name\n";
-		std::cout << "    - Removes a column from the specified table.\n";
-		std::cout << "\n";
-		std::cout << "12. CREATE INDEX index_name ON table_name (column_name)\n";
-		std::cout << "    - Creates an index on the specified column in the table.\n";
-		std::cout << "\n";
-		std::cout << "13. DROP INDEX index_name\n";
-		std::cout << "    - Deletes the specified index.\n";
-		std::cout << "\n";
-		std::cout << "14. SHOW TABLES\n";
-		std::cout << "    - Lists all the tables in the database.\n";
-		std::cout << "\n";
-		std::cout << "15. SHOW INDEX FROM table_name\n";
-		std::cout << "    - Displays all indices on the specified table.\n";
-		std::cout << "\n";
-		std::cout << "16. SHOW INDEX FROM ALL\n";
-		std::cout << "    - Displays all indices across all tables.\n";
-		std::cout << "\n";
-		std::cout << "17. clear\n";
-		std::cout << "    - Clears the console screen.\n";
-		std::cout << "\n";
-		std::cout << "18. exit\n";
-		std::cout << "    - Exits the program.\n";
-		std::cout << "================================================================\n";
+	void showIndexFromTable(const string& tableName) const {
+		if (!tableExists(tableName)) {
+			cout << endl << "Error: Table: " << "'" << tableName << "'" << " does not exist.";
+			return;
+		}
+
+		bool found = false;
+		for (int i = 0; i < indexManager.getNoIndexes(); ++i) {
+			Index** indexes = indexManager.getIndexes();
+			Index* index = indexes[i];
+			if (index->getTableName() == tableName) {
+				cout << "Index Name: " << index->getIndexName() << ", Column Name: " << index->getColumnName() << "\n";
+				index->displayIndex();
+				found = true;
+			}
+		}
+		if (!found) {
+			cout << "Error: No indexes found for table '" << tableName << "'." << endl;
+		}
 	}
-	//--------------------------------------------------
-	//refactor these with helper function later
+	void showIndexFromAll() const {
+		indexManager.displayAllIndexes();
+	}
+	//SAVE & LOAD DATABASE
 	void saveDatabase(const string& tablesConfigAddress) const {
 		for (int i = 0; i < noTables; i++) {
 			const Table& table = *database[i];
@@ -1120,7 +1000,6 @@ public:
 		cout << endl << "Database loaded successfully." << endl;
 	}
 };
-int Database::selectCount = 0;
 
 class createTable : public Command {
 private:
@@ -3304,6 +3183,8 @@ private:
 	static CommandMapping commandMappings[];
 	string selectCommandsAddress;
 	string tablesConfigAddress;
+	string csvFilesDirectory;
+	char csvDelimiter;
 
 	Command* handleCreateTable(const string& command) {
 		return new createTable(createTable::parseCommand(command));
@@ -3320,6 +3201,25 @@ private:
 	Command* handleCreateIndex(const string& command) {
 		return new createIndex(createIndex::parseCommand(command));
 	}
+	Command* handleDeleteWhere(const string& command) {
+		return new deleteWhere(deleteWhere::parseCommand(command));
+	}
+	Command* handleUpdateTable(const string& command) {
+		return new updateTable(updateTable::parseCommand(command));
+	}
+	Command* handleAlterAddColumn(const string& command) {
+		return new alterAddColumn(alterAddColumn::parseCommand(command));
+	}
+	Command* handleAlterDropColumn(const string& command) {
+		return new alterDropColumn(alterDropColumn::parseCommand(command));
+	}
+	Command* handleDropIndex(const string& command) {
+		return new dropIndex(dropIndex::parseCommand(command));
+	}
+	Command* handleImportCsv(const string& command) {
+		return new importCSV(importCSV::parseCommand(command, csvFilesDirectory, csvDelimiter));
+	}
+	//--------------------------------------------------
 	Command* handleSelectAll(const string& command) {
 		return new selectAll(selectAll::parseCommand(command, selectCommandsAddress));
 	}
@@ -3332,12 +3232,33 @@ private:
 	Command* handleSelectAllWhere(const string& command) {
 		return new selectAllWhere(selectAllWhere::parseCommand(command, selectCommandsAddress));
 	}
-	// add more here
+	//--------------------------------------------------
+	Command* handleShowTables(const string& command) {
+		return new showTables(showTables::parseCommand(command));
+	}
+	Command* handleShowIndexFromTable(const string& command) {
+		return new showIndexFromTable(showIndexFromTable::parseCommand(command));
+	}
+	Command* handleShowIndexFromAll(const string& command) {
+		return new showIndexFromAll(showIndexFromAll::parseCommand(command));
+	}
+	//--------------------------------------------------
+	Command* handleHelpMenu(const string& command) {
+		return new helpMenu(helpMenu::parseCommand(command));
+	}
+	Command* handleSyntaxMenu(const string& command) {
+		return new syntaxMenu(syntaxMenu::parseCommand(command));
+	}
+	Command* handleClearDisplay(const string& command) {
+		return new clearDisplay(clearDisplay::parseCommand(command));
+	}
 
 public:
-	commandParser(const string& selectCommandsAddress, const string& tablesConfigAddress) {
+	commandParser(const string& selectCommandsAddress, const string& tablesConfigAddress, const string& csvFilesDirectory, char csvDelimiter) {
 		this->selectCommandsAddress = selectCommandsAddress;
 		this->tablesConfigAddress = tablesConfigAddress;
+		this->csvFilesDirectory = csvFilesDirectory;
+		this->csvDelimiter = csvDelimiter;
 	}
 	Command* handleCommand(const string& command) {
 		for (int i = 0; commandMappings[i].commandKeywords[0] != nullptr; i++) {
@@ -3360,745 +3281,39 @@ public:
 CommandMapping commandParser::commandMappings[] = {
 	{{"CREATE", "TABLE", nullptr}, &commandParser::handleCreateTable},
 	{{"DESCRIBE", nullptr , nullptr}, &commandParser::handleDescribeTable},
+	{{"ALTER", "DROP", nullptr}, &commandParser::handleAlterDropColumn},
 	{{"DROP", "TABLE", nullptr}, &commandParser::handleDropTable},
 	{{"INSERT", "INTO", nullptr}, &commandParser::handleInsertCommand},
 	{{"CREATE", "INDEX", nullptr}, &commandParser::handleCreateIndex},
+	{{"DELETE", nullptr, nullptr}, &commandParser::handleDeleteWhere},
+	{{"UPDATE", nullptr , nullptr}, &commandParser::handleUpdateTable},
+	{{"ALTER", "ADD", nullptr}, &commandParser::handleAlterAddColumn},
+	{{"DROP", "INDEX", nullptr}, &commandParser::handleDropIndex},
+	{{"IMPORT", nullptr, nullptr}, &commandParser::handleImportCsv},
 	//--------------------------------------------------
 	{{"SELECT", "ALL", "WHERE"}, &commandParser::handleSelectAllWhere},
 	{{"SELECT", "ALL" , nullptr}, &commandParser::handleSelectAll},
 	{{"SELECT", "WHERE" , nullptr}, &commandParser::handleSelectWHERE},
 	{{"SELECT", nullptr , nullptr}, &commandParser::handleSelectColumns},
-	// add more command mappings here
+	//--------------------------------------------------
+	{{"SHOW", "TABLES", nullptr}, &commandParser::handleShowTables},
+	{{"SHOW", "INDEX", "ALL"}, &commandParser::handleShowIndexFromAll},
+	{{"SHOW", "INDEX", nullptr}, &commandParser::handleShowIndexFromTable},
+	//--------------------------------------------------
+	{{"help", "2", nullptr}, &commandParser::handleSyntaxMenu},
+	{{"help", nullptr, nullptr}, &commandParser::handleHelpMenu},
+	{{"clear", nullptr, nullptr}, &commandParser::handleClearDisplay},
 	{{nullptr, nullptr, nullptr}, nullptr}  // end marker for the array
-};
-
-class Commands { //doar daca e comanda scrisa cum trebuie
-	//VERIFIC DACA ARE FORMATU BUN LA COMANDA SI GENEREAZA UN OBIECT SPECIFIC COMENZII INTRODUSE
-	//NIMIC LA MEMBRI
-private:
-	Database* db = nullptr;
-	//HELPER FUNCTIONS----------------------------------
-	ColumnType parseColumnType(const string& type) {
-		//convert string to ColumnType for the column constructor
-		if (type == "INT") return INT;
-		if (type == "TEXT") return TEXT;
-		if (type == "FLOAT") return FLOAT;
-		if (type == "BOOLEAN") return BOOLEAN;
-		if (type == "DATE") return DATE;
-		throw invalid_argument("Invalid column type: " + type);
-	}
-	bool parseUnique(const string& unique) {
-		//convert string to bool for the column constructor
-		if (unique == "UNIQUE") return true;
-		return false;
-	}
-	void trim(string& str) {
-		//find the first non-space character
-		size_t start = str.find_first_not_of(" ");
-		//find the last non-space character
-		size_t end = str.find_last_not_of(" ");
-
-		//if the string is only spaces set it to an empty string
-		if (start == string::npos) {
-			str = "";
-		}
-		else {
-			//make the trimmed string
-			str = str.substr(start, end - start + 1);
-		}
-	}
-	void splitCommand(const string& command, const string& delimiter, string*& tokens, int& tokenCount) {
-		string commandCopy = command;
-		trim(commandCopy);
-		tokenCount = 0;
-		size_t pos = 0;
-		string token;
-		while ((pos = commandCopy.find(delimiter)) != string::npos) {
-			token = commandCopy.substr(0, pos);
-			if (!token.empty()) {
-				tokenCount++;
-			}
-			commandCopy.erase(0, pos + delimiter.length());
-		}
-		if (!commandCopy.empty()) {
-			tokenCount++;
-		}
-
-		tokens = new string[tokenCount];
-		commandCopy = command;
-		pos = 0;
-		int i = 0;
-		while ((pos = commandCopy.find(delimiter)) != string::npos) {
-			token = commandCopy.substr(0, pos);
-			if (!token.empty()) {
-				tokens[i++] = token;
-			}
-			commandCopy.erase(0, pos + delimiter.length());
-		}
-		if (!commandCopy.empty()) {
-			tokens[i] = commandCopy;
-		}
-	}
-private:
-	void stringCommandDeleteFromWhere(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command starts with "DELETE FROM "
-			if (commandCopy.find("DELETE FROM ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//find the position of "WHERE "
-			size_t pos = commandCopy.find("WHERE ");
-			if (pos == string::npos) {
-				cout << endl << "Invalid command format. Missing 'WHERE'.";
-				return;
-			}
-
-			//make sure there is a space before "WHERE "
-			if (commandCopy[pos - 1] != ' ') {
-				cout << endl << "Invalid command format. Missing space before 'WHERE'.";
-				return;
-			}
-
-			//get the table name
-			string tableName = commandCopy.substr(12, pos - 13);  // 12 is the length of "DELETE FROM " with a space
-			trim(tableName);
-
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
-
-			//get the where part
-			string wherePart = commandCopy.substr(pos + 6);  // 6 is the length of "WHERE " with a space
-			trim(wherePart);
-
-			if (wherePart.empty()) {
-				cout << endl << "Invalid command format. Where part cannot be empty.";
-				return;
-			}
-
-			//split the where part into individual parts
-			string* whereParts = nullptr;
-			int noParts = 0;
-			splitCommand(wherePart, "=", whereParts, noParts);
-
-			if (noParts != 2) {
-				cout << endl << "Invalid command format. Invalid where part.";
-				delete[] whereParts;
-				return;
-			}
-
-			//get the column name
-			string columnName = whereParts[0];
-			trim(columnName);
-
-			if (columnName.empty()) {
-				cout << endl << "Invalid command format. Column name cannot be empty.";
-				delete[] whereParts;
-				return;
-			}
-
-			//get the value
-			string value = whereParts[1];
-			trim(value);
-
-			if (value.empty()) {
-				cout << endl << "Invalid command format. Value cannot be empty.";
-				delete[] whereParts;
-				return;
-			}
-
-			db->deleteRowFromTable(tableName, columnName, value);
-
-			delete[] whereParts;
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandUpdateTable(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command starts with "UPDATE "
-			if (commandCopy.find("UPDATE ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//find the position of " SET "
-			size_t setPos = commandCopy.find(" SET ");
-			if (setPos == string::npos) {
-				cout << endl << "Invalid command format. Missing 'SET'.";
-				return;
-			}
-
-			//find the position of " WHERE "
-			size_t wherePos = commandCopy.find(" WHERE ");
-			if (wherePos == string::npos) {
-				cout << endl << "Invalid command format. Missing 'WHERE'.";
-				return;
-			}
-
-			//extract the table name
-			string tableName = commandCopy.substr(7, setPos - 7);  // 7 is the length of "UPDATE "
-			trim(tableName);
-
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
-
-			//extract the set part
-			string setPart = commandCopy.substr(setPos + 5, wherePos - (setPos + 5));  // 5 is the length of " SET "
-			trim(setPart);
-
-			if (setPart.empty()) {
-				cout << endl << "Invalid command format. Set part cannot be empty.";
-				return;
-			}
-
-			//split the set part into column and value
-			size_t equalPos = setPart.find('=');
-			if (equalPos == string::npos) {
-				cout << endl << "Invalid command format. Missing '=' in set part.";
-				return;
-			}
-
-			string setColumnName = setPart.substr(0, equalPos);
-			trim(setColumnName);
-			string setValue = setPart.substr(equalPos + 1);
-			trim(setValue);
-
-			if (setColumnName.empty() || setValue.empty()) {
-				cout << endl << "Invalid command format. Set column or value cannot be empty.";
-				return;
-			}
-
-			//extract the condition part
-			string conditionPart = commandCopy.substr(wherePos + 7);  // 7 is the length of " WHERE "
-			trim(conditionPart);
-
-			if (conditionPart.empty()) {
-				cout << endl << "Invalid command format. Condition cannot be empty.";
-				return;
-			}
-
-			//split the condition part into column and value
-			size_t conditionEqualPos = conditionPart.find('=');
-			if (conditionEqualPos == string::npos) {
-				cout << endl << "Invalid command format. Missing '=' in condition part.";
-				return;
-			}
-
-			string whereColumnName = conditionPart.substr(0, conditionEqualPos);
-			trim(whereColumnName);
-			string whereValue = conditionPart.substr(conditionEqualPos + 1);
-			trim(whereValue);
-
-			if (whereColumnName.empty() || whereValue.empty()) {
-				cout << endl << "Invalid command format. Condition column or value cannot be empty.";
-				return;
-			}
-
-			db->updateTable(tableName, setColumnName, setValue, whereColumnName, whereValue);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandAlterTableAddColumn(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command starts with "ALTER TABLE "
-			if (commandCopy.find("ALTER TABLE ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//find the position of " ADD "
-			size_t addPos = commandCopy.find(" ADD ");
-			if (addPos == string::npos) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//check for '(' after " ADD "
-			size_t openParenPos = commandCopy.find("(", addPos);
-			if (openParenPos == string::npos) {
-				cout << endl << "Invalid command format. Missing '('.";
-				return;
-			}
-
-			//extract the table name
-			string tableName = commandCopy.substr(12, addPos - 12);  // 12 is the length of "ALTER TABLE "
-			trim(tableName);
-
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
-
-			//extract the column definition part
-			string columnDef = commandCopy.substr(openParenPos + 1);  // 1 is the length of "("
-			if (columnDef.back() != ')') {
-				cout << endl << "Invalid command format. Missing ')'.";
-				return;
-			}
-			columnDef.pop_back();  //remove the closing parenthesis
-			trim(columnDef);
-
-			//split the column definition into parts
-			string columnParts[4];
-			int partIndex = 0;
-			size_t start = 0;
-			size_t end = columnDef.find(',');
-
-			while (end != string::npos && partIndex < 4) {
-				columnParts[partIndex++] = columnDef.substr(start, end - start);
-				start = end + 1;
-				end = columnDef.find(',', start);
-			}
-			if (partIndex < 4) {
-				columnParts[partIndex++] = columnDef.substr(start);
-			}
-
-			if (partIndex != 4) {
-				cout << endl << "Invalid command format. Column definition must have 4 parameters.";
-				return;
-			}
-
-			//trim each part
-			for (int i = 0; i < 4; i++) {
-				trim(columnParts[i]);
-			}
-
-			//extract column details
-			string columnName = columnParts[0];
-			string columnTypeStr = columnParts[1];
-			int columnSize = stoi(columnParts[2]);
-			string defaultValue = columnParts[3];
-
-			ColumnType columnType;
-			if (columnTypeStr == "INT") {
-				columnType = INT;
-			}
-			else if (columnTypeStr == "TEXT") {
-				columnType = TEXT;
-			}
-			else if (columnTypeStr == "FLOAT") {
-				columnType = FLOAT;
-			}
-			else if (columnTypeStr == "BOOLEAN") {
-				columnType = BOOLEAN;
-			}
-			else if (columnTypeStr == "DATE") {
-				columnType = DATE;
-			}
-			else {
-				cout << endl << "Invalid column type.";
-				return;
-			}
-
-			Column newColumn(columnName, columnType, columnSize, defaultValue);
-
-			db->alterTableAddColumn(tableName, newColumn);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandAlterTableDropColumn(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command starts with "ALTER TABLE "
-			if (commandCopy.find("ALTER TABLE ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//find the position of " DROP COLUMN "
-			size_t dropPos = commandCopy.find(" DROP COLUMN ");
-			if (dropPos == string::npos) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//extract the table name
-			string tableName = commandCopy.substr(12, dropPos - 12);  // 12 is the length of "ALTER TABLE "
-			trim(tableName);
-
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
-
-			//extract the column name
-			string columnName = commandCopy.substr(dropPos + 13);  // 13 is the length of " DROP COLUMN "
-			trim(columnName);
-
-			if (columnName.empty()) {
-				cout << endl << "Invalid command format. Column name cannot be empty.";
-				return;
-			}
-
-			db->alterTableDeleteColumn(tableName, columnName);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandCreateIndex(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command starts with "CREATE INDEX "
-			if (commandCopy.find("CREATE INDEX ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//find the position of " ON "
-			size_t onPos = commandCopy.find(" ON ");
-			if (onPos == string::npos) {
-				cout << endl << "Invalid command format. Missing 'ON'.";
-				return;
-			}
-
-			//ensure there is an index name between "CREATE INDEX " and " ON "
-			if (onPos <= 13) {  // 13 is the length of "CREATE INDEX "
-				cout << endl << "Invalid command format. Missing index name.";
-				return;
-			}
-
-			//extract the index name
-			string indexName = commandCopy.substr(13, onPos - 13);
-			trim(indexName);
-
-			if (indexName.empty()) {
-				cout << endl << "Invalid command format. Index name cannot be empty.";
-				return;
-			}
-
-			//extract the table name and column part
-			string tableAndColumnPart = commandCopy.substr(onPos + 4);  // 4 is the length of " ON "
-			trim(tableAndColumnPart);
-
-			//find the position of the opening parenthesis '('
-			size_t openParenPos = tableAndColumnPart.find('(');
-			if (openParenPos == string::npos) {
-				cout << endl << "Invalid command format. Missing '('.";
-				return;
-			}
-
-			//table name
-			string tableName = tableAndColumnPart.substr(0, openParenPos);
-			trim(tableName);
-
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
-
-			//find the position of the closing parenthesis ')'
-			size_t closeParenPos = tableAndColumnPart.find(')', openParenPos);
-			if (closeParenPos == string::npos) {
-				cout << endl << "Invalid command format. Missing closing parenthesis.";
-				return;
-			}
-
-			//column name
-			string columnName = tableAndColumnPart.substr(openParenPos + 1, closeParenPos - openParenPos - 1);
-			trim(columnName);
-
-			if (columnName.empty()) {
-				cout << endl << "Invalid command format. Column name cannot be empty.";
-				return;
-			}
-
-			// check for extra arguments after the closing parenthesis
-			if (closeParenPos + 1 < tableAndColumnPart.length()) {
-				string extraArgs = tableAndColumnPart.substr(closeParenPos + 1);
-				trim(extraArgs);
-				if (!extraArgs.empty()) {
-					cout << endl << "Invalid command format. Too many arguments.";
-					return;
-				}
-			}
-
-			db->createIndex(indexName, columnName, tableName);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandDropIndex(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command starts with "DROP INDEX "
-			if (commandCopy.find("DROP INDEX ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//extract the index name
-			string indexName = commandCopy.substr(11);  // 11 is the length of "DROP INDEX "
-			trim(indexName);
-
-			if (indexName.empty()) {
-				cout << endl << "Invalid command format. Index name cannot be empty.";
-				return;
-			}
-
-			//check for extra arguments
-			size_t extraArgsPos = indexName.find(' ');
-			if (extraArgsPos != string::npos) {
-				cout << endl << "Invalid command format. Too many arguments.";
-				return;
-			}
-
-			db->dropIndex(indexName);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandShowTables(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command is "SHOW TABLES"
-			if (commandCopy != "SHOW TABLES") {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			db->showTables();
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandShowIndexFromTable(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command starts with "SHOW INDEX FROM "
-			if (commandCopy.find("SHOW INDEX FROM ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			//extract the table name
-			string tableName = commandCopy.substr(16);  // 16 is the length of "SHOW INDEX FROM "
-			trim(tableName);
-
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
-
-			//check for extra arguments
-			size_t extraArgsPos = tableName.find(' ');
-			if (extraArgsPos != string::npos) {
-				cout << endl << "Invalid command format. Too many arguments.";
-				return;
-			}
-
-			db->showIndexFromTable(tableName);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandShowIndexFromAll(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command is "SHOW INDEX FROM ALL"
-			if (commandCopy != "SHOW INDEX FROM ALL") {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			db->showIndexFromAll();
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandClearConsole(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command is "clear"
-			if (commandCopy != "clear") {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			system("cls");
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandHelpMenu(const string& command) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command is "help"
-			if (commandCopy != "help") {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			db->printHelpMenu();
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandSyntaxMenu(const string& command) {
-		try {
-			system("cls");
-			string commandCopy = command;
-			trim(commandCopy);
-
-			//check if the command is "help 2"
-			if (commandCopy != "help 2") {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			db->printSyntaxMenu();
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-	void stringCommandImportCSV(const string& command, const string& csvFilePath, char delimiter) {
-		try {
-			string commandCopy = command;
-			trim(commandCopy);
-
-			// Check if the command starts with "IMPORT INTO "
-			if (commandCopy.find("IMPORT INTO ") != 0) {
-				cout << endl << "Invalid command format.";
-				return;
-			}
-
-			// Find the position of the space after "IMPORT INTO "
-			size_t pos = commandCopy.find(" ", 12); // 12 is the length of "IMPORT INTO "
-			if (pos == string::npos) {
-				cout << endl << "Invalid command format. Missing table name or file name.";
-				return;
-			}
-
-			// Get the table name
-			string tableName = commandCopy.substr(12, pos - 12);
-			trim(tableName);
-
-			if (tableName.empty()) {
-				cout << endl << "Invalid command format. Table name cannot be empty.";
-				return;
-			}
-
-			// Get the file name
-			string fileName = commandCopy.substr(pos + 1);
-			trim(fileName);
-
-			if (fileName.empty()) {
-				cout << endl << "Invalid command format. File name cannot be empty.";
-				return;
-			}
-
-			// Check for valid file extension
-			if (fileName.find(".csv") == string::npos && fileName.find(".txt") == string::npos) {
-				cout << endl << "Invalid file format. Only .csv or .txt files are allowed.";
-				return;
-			}
-
-			// Check if the file exists
-			if (!filesystem::exists(csvFilePath)) {
-				cout << endl << "Error: File '" << csvFilePath << "' does not exist.";
-				return;
-			}
-
-			// Import the CSV file into the table
-			db->importCSV(tableName, csvFilePath, fileName, delimiter);
-		}
-		catch (const invalid_argument& e) {
-			cout << endl << e.what();
-		}
-	}
-public:
-	//DEFAULT CONSTRUCTOR
-	Commands() {
-		this->db = nullptr;
-	}
-	//CONSTRUCTOR
-	Commands(Database* database) : db(database) {}
-};
-
-class FileManager {
-public:
-	const static string TABLES_CONFIG_ADDRESS;
-	const static string SELECT_COMMANDS_ADDRESS;
-	const static int MAX_COMMANDS_FILES;
-	const static string START_COMMANDS_ADDRESSES[];
-public:
-	void readStartCommandsFromFiles(const string* filenames, int count, Commands& commands) {
-		for (int i = 0; i < count; i++) {
-			if (filenames[i].empty()) {
-				continue; //skip empty addresses
-			}
-			ifstream file(filenames[i]);
-			if (!file.is_open()) {
-				cout << endl << "Error: Could not open file " << filenames[i] << endl;
-				continue; //skip to the next file if one can't be opened
-			}
-			string command;
-			while (getline(file, command)) {
-				if (!command.empty()) {
-					//commands.handleCommand(command, FileManager::TABLES_CONFIG_ADDRESS, FileManager::SELECT_COMMANDS_ADDRESS);
-				}
-			}
-			cout << endl;
-			file.close();
-		}
-	}
-};
-const int FileManager::MAX_COMMANDS_FILES = 5;
-const string FileManager::START_COMMANDS_ADDRESSES[FileManager::MAX_COMMANDS_FILES] = {
-	"D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\start_commands\\commands1.txt",
-	"D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\start_commands\\commands2.txt"
 };
 
 int main() {
 	Database db;
 	string selectCommandsAddress = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\select_commands\\";
 	string tablesConfigAddress = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\tables_config\\";
+	string csvFilesPath = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\csv_files\\";
+	char csvDelimiter = ',';
 
-	commandParser parser(selectCommandsAddress, tablesConfigAddress);
+	commandParser parser(selectCommandsAddress, tablesConfigAddress, csvFilesPath, csvDelimiter);
 	string userCommand;
 
 	cout << "Use the 'help' command to view available commands and their syntax." << endl;
@@ -4106,7 +3321,6 @@ int main() {
 	db.loadDatabase(tablesConfigAddress, selectCommandsAddress);
 
 	//read commands from multiple files at the start
-	//fm.readStartCommandsFromFiles(FileManager::START_COMMANDS_ADDRESSES, FileManager::MAX_COMMANDS_FILES, commands);
 
 	//continue with console input
 	while (true) {
