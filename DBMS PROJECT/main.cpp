@@ -2328,9 +2328,9 @@ public:
 
 int main(int argc, char* argv[]) {
 	Database db;
-	string selectCommandsAddress = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\select_commands\\";
-	string tablesConfigAddress = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\tables_config\\";
-	string csvFilesPath = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\csv_files\\";
+	string selectCommandsAddress = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\select_commands\\";
+	string tablesConfigAddress = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\tables_config\\";
+	string csvFilesPath = "D:\\VS PROJECTS\\!DBMS PROJECT\\DBMS PROJECT\\csv_files\\";
 	char csvDelimiter = ',';
 
 	commandParser parser(selectCommandsAddress, tablesConfigAddress, csvFilesPath, csvDelimiter);
