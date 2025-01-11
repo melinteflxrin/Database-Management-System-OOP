@@ -129,11 +129,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Column.cpp" />
+    <ClCompile Include="Database.cpp" />
     <ClCompile Include="HelpersForSelectCommands.cpp" />
     <ClCompile Include="Index.cpp" />
     <ClCompile Include="IndexManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Row.cpp" />
+    <ClCompile Include="selectCommands.cpp" />
     <ClCompile Include="stringUtils.cpp" />
     <ClCompile Include="Table.cpp" />
     <ClCompile Include="TableNames.cpp" />
@@ -141,10 +143,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Column.h" />
+    <ClInclude Include="Command.h" />
+    <ClInclude Include="Database.h" />
+    <ClInclude Include="helpCommands.h" />
     <ClInclude Include="HelpersForSelectCommands.h" />
     <ClInclude Include="Index.h" />
     <ClInclude Include="IndexManager.h" />
     <ClInclude Include="Row.h" />
+    <ClInclude Include="selectCommands.h" />
     <ClInclude Include="stringUtils.h" />
     <ClInclude Include="Table.h" />
     <ClInclude Include="TableNames.h" />
