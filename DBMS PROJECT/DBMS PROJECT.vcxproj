@@ -139,7 +139,7 @@
     <ClCompile Include="stringUtils.cpp" />
     <ClCompile Include="Table.cpp" />
     <ClCompile Include="TableNames.cpp" />
-    <ClCompile Include="ValidateDataType.cpp" />
+    <ClCompile Include="ValidDataType.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Column.h" />
@@ -154,7 +154,7 @@
     <ClInclude Include="stringUtils.h" />
     <ClInclude Include="Table.h" />
     <ClInclude Include="TableNames.h" />
-    <ClInclude Include="ValidateDataType.h" />
+    <ClInclude Include="ValidDataType.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

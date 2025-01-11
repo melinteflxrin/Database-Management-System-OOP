@@ -3,6 +3,7 @@
 
 #include "Column.h"
 #include "Row.h"
+#include <iostream>
 #include <string>
 
 class Table {

@@ -2,6 +2,8 @@
 #define ROW_H
 
 #include <string>
+#include "ValidDataType.h"
+#include <iostream>
 
 using namespace std;
 

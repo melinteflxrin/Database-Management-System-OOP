@@ -1,6 +1,4 @@
 #include "Column.h"
-#include "ValidateDataType.h"
-#include <iostream>
 
 using namespace std;
 
@@ -32,7 +30,7 @@ void Column::setDefaultValue(const string& defaultValue) {
 		this->defaultValue = defaultValue;
 		break;
 	case INT:
-		if (ValidateDataType::isValidInt(defaultValue)) {
+		if (ValidDataType::isValidInt(defaultValue)) {
 			this->defaultValue = defaultValue;
 		}
 		else {
@@ -40,7 +38,7 @@ void Column::setDefaultValue(const string& defaultValue) {
 		}
 		break;
 	case FLOAT:
-		if (ValidateDataType::isValidFloat(defaultValue)) {
+		if (ValidDataType::isValidFloat(defaultValue)) {
 			this->defaultValue = defaultValue;
 		}
 		else {

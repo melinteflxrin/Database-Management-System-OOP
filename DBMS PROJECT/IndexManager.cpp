@@ -133,7 +133,7 @@ bool IndexManager::indexExistsByIndexName(const std::string& indexName) const {
 
 void IndexManager::displayAllIndexes() const {
 	for (int i = 0; i < noIndexes; ++i) {
-		std::cout << " '" << indexes[i]->getIndexName() << "' table: " << indexes[i]->getTableName() << " column: " << indexes[i]->getColumnName() << "\n";
+		cout << " '" << indexes[i]->getIndexName() << "' created on: " << indexes[i]->getTableName() << " (" << indexes[i]->getColumnName() << ")\n";
 	}
 }
 

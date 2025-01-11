@@ -1,11 +1,11 @@
-#ifndef VALIDATEDATATYPE_H
-#define VALIDATEDATATYPE_H
+#ifndef VALIDDATATYPE_H
+#define VALIDDATATYPE_H
 
 #include <string>
 
 using namespace std;
 
-class ValidateDataType {
+class ValidDataType {
 public:
 	static bool isValidInt(const string& value);
 	static bool isValidFloat(const string& value);

@@ -1,6 +1,8 @@
 #ifndef COLUMN_H
 #define COLUMN_H
 
+#include "ValidDataType.h"
+#include <iostream>
 #include <string>
 
 using namespace std;

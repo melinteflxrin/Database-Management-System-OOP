@@ -2288,7 +2288,45 @@ CommandMapping commandParser::commandMappings[] = {
 	{{nullptr, nullptr, nullptr}, nullptr}  // end marker for the array
 };
 
-int main() {
+class startCommands {
+public:
+	static void processCommandFiles(commandParser& parser, Database& db, const string filePaths[], int fileCount) {
+		for (int i = 0; i < fileCount; ++i) {
+			if (!std::filesystem::exists(filePaths[i])) {
+				cout << "File does not exist: " << filePaths[i] << endl;
+				continue;
+			}
+
+			ifstream file(filePaths[i]);
+			if (!file.is_open()) {
+				cout << "Error opening file: " << filePaths[i] << endl;
+				continue;
+			}
+
+			string command;
+			while (getline(file, command)) {
+				try {
+					Command* cmd = parser.handleCommand(command);
+					cmd->execute(db);
+					delete cmd;
+				}
+				catch (const invalid_argument& e) {
+					cout << "Error in file " << filePaths[i] << ": " << e.what() << endl;
+				}
+				catch (const exception& e) {
+					cout << "Error in file " << filePaths[i] << ": " << e.what() << endl;
+				}
+				catch (...) {
+					cout << "An error occurred in file " << filePaths[i] << endl;
+				}
+			}
+
+			file.close();
+		}
+	}
+};
+
+int main(int argc, char* argv[]) {
 	Database db;
 	string selectCommandsAddress = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\select_commands\\";
 	string tablesConfigAddress = "D:\\VS PROJECTS\\!!DBMS PROJECT OG\\DBMS PROJECT\\tables_config\\";
@@ -2309,7 +2347,14 @@ int main() {
 		return 1;
 	}
 
-	//read commands from multiple files at the start
+	//read files passed as arguments
+	const int maxFiles = 5;
+	string commandFiles[maxFiles];
+	int fileCount = 0;
+	for (int i = 1; i < argc && fileCount < maxFiles; ++i) {
+		commandFiles[fileCount++] = argv[i];
+	}
+	startCommands::processCommandFiles(parser, db, commandFiles, fileCount);
 
 	//continue with console input
 	while (true) {
@@ -2336,7 +2381,12 @@ int main() {
 		}
 	}
 
-	db.saveDatabase(tablesConfigAddress);
+	try {
+		db.saveDatabase(tablesConfigAddress);
+	}
+	catch (const exception& e) {
+		cout << "Error saving database: " << e.what() << endl;
+	}
 
 	return 0;
 }

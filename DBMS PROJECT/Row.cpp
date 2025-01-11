@@ -1,6 +1,4 @@
 #include "Row.h"
-#include "ValidateDataType.h"
-#include <iostream>
 
 using namespace std;
 
@@ -51,7 +49,7 @@ void Row::setIntData(int columnIndex, const string& value) {
 	if (columnIndex < 0 || columnIndex >= noColumns)
 		throw out_of_range("Column index out of range.");
 
-	if (!ValidateDataType::isValidInt(value)) {
+	if (!ValidDataType::isValidInt(value)) {
 		throw invalid_argument("Provided value is not a valid integer.");
 	}
 
@@ -61,7 +59,7 @@ void Row::setFloatData(int columnIndex, const string& value) {
 	if (columnIndex < 0 || columnIndex >= noColumns)
 		throw out_of_range("Column index out of range.");
 
-	if (!ValidateDataType::isValidFloat(value)) {
+	if (!ValidDataType::isValidFloat(value)) {
 		throw invalid_argument("Provided value is not a valid float.");
 	}
 
@@ -72,7 +70,7 @@ void Row::setFloatData(int columnIndex, const string& value) {
 int Row::getIntData(int columnIndex) const {
 	if (columnIndex < 0 || columnIndex >= noColumns)
 		throw out_of_range("Column index out of range.");
-	if (!ValidateDataType::isValidInt(data[columnIndex])) {
+	if (!ValidDataType::isValidInt(data[columnIndex])) {
 		throw invalid_argument("Data at the specified index is not a valid integer.");
 	}
 	return stoi(data[columnIndex]);
@@ -86,7 +84,7 @@ string Row::getTextData(int columnIndex) const {
 float Row::getFloatData(int columnIndex) const {
 	if (columnIndex < 0 || columnIndex >= noColumns)
 		throw out_of_range("Column index out of range.");
-	if (!ValidateDataType::isValidFloat(data[columnIndex])) {
+	if (!ValidDataType::isValidFloat(data[columnIndex])) {
 		throw invalid_argument("Data at the specified index is not a valid float.");
 	}
 	return stof(data[columnIndex]);

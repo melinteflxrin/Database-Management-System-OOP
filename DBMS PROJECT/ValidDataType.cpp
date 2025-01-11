@@ -1,9 +1,9 @@
-#include "ValidateDataType.h"
+#include "ValidDataType.h"
 
 using namespace std;
 
 //public methods
-bool ValidateDataType::isValidInt(const string& value) {
+bool ValidDataType::isValidInt(const string& value) {
 	if (value.empty()) return false;
 	size_t i = 0;
 
@@ -22,7 +22,7 @@ bool ValidateDataType::isValidInt(const string& value) {
 
 	return true;
 }
-bool ValidateDataType::isValidFloat(const string& value) {
+bool ValidDataType::isValidFloat(const string& value) {
 	if (value.empty()) return false;
 	size_t i = 0;
 	bool decimalPointFound = false;

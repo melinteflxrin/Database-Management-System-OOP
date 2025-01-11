@@ -1,8 +1,4 @@
 #include "Table.h"
-#include "Column.h"
-#include "Row.h"
-#include <iostream>
-#include <string>
 
 //private methods
 string Table::getColumnTypeName(ColumnType type) const {     //for describe table
