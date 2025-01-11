@@ -457,12 +457,11 @@ public:
 		for (int colIndex = 0; colIndex < table->getNoColumns(); colIndex++) {
 			string colName = table->getColumn(colIndex).getName();
 			try {
-				Index index = indexManager.getIndexByColumnAndTable(colName, tableName);
-				index.clear(); // Clear the existing index
+				indexManager.clear(indexManager.getIndexByColumnAndTable(colName, tableName).getIndexName()); // Clear the existing index
 
 				// Recreate the index
 				for (int rowIndex = 0; rowIndex < table->getNoRows(); rowIndex++) {
-					index.addValue(table->getRow(rowIndex).getTextData(colIndex), rowIndex);
+					indexManager.addValue(indexManager.getIndexByColumnAndTable(colName, tableName).getIndexName(), table->getRow(rowIndex).getTextData(colIndex), rowIndex);
 				}
 				cout << "Recreated index for column: " << colName << endl;
 			}
