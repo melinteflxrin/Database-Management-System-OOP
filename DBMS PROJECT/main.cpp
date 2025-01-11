@@ -636,6 +636,84 @@ public:
 	void showIndexFromAll() const {
 		indexManager.displayAllIndexes();
 	}
+	void importCSV(const string& tableName, const string& csvDirectory, const string& fileName, char delimiter) {
+		// Construct the full file path
+		string fullPath = csvDirectory + "/" + fileName;
+
+		// Open the CSV file
+		std::ifstream csvFile(fullPath);
+		if (!csvFile.is_open()) {
+			cout << "Error: Could not open file '" << fullPath << "'." << endl;
+			return;
+		}
+
+		string line;
+		int lineNumber = 0;
+
+		// Read file line by line
+		while (getline(csvFile, line)) {
+			lineNumber++;
+
+			// Trim leading and trailing whitespace from the line
+			size_t start = line.find_first_not_of(" \t\n\r");
+			size_t end = line.find_last_not_of(" \t\n\r");
+			if (start == string::npos || end == string::npos) {
+				continue; // Skip empty or whitespace-only lines
+			}
+			line = line.substr(start, end - start + 1);
+
+			// Count the number of values in the line (based on the delimiter)
+			int noValues = 1; // At least one value per line
+			for (size_t i = 0; i < line.length(); i++) {
+				if (line[i] == delimiter) {
+					noValues++;
+				}
+			}
+
+			// Create an array to store the parsed values
+			string* valueArray = new string[noValues];
+			int valueIndex = 0;
+			size_t prevPos = 0;
+
+			// Split the line into values based on the delimiter
+			for (size_t i = 0; i <= line.length(); i++) {
+				if (i == line.length() || line[i] == delimiter) {
+					// Extract the substring for this value
+					string value = line.substr(prevPos, i - prevPos);
+
+					// Trim whitespace from the value
+					size_t valueStart = value.find_first_not_of(" \t\n\r");
+					size_t valueEnd = value.find_last_not_of(" \t\n\r");
+					if (valueStart != string::npos && valueEnd != string::npos) {
+						value = value.substr(valueStart, valueEnd - valueStart + 1);
+					}
+					else {
+						value = ""; // Empty value if only whitespace
+					}
+
+					// Store the value in the array
+					valueArray[valueIndex++] = value;
+
+					// Update the start position for the next value
+					prevPos = i + 1;
+				}
+			}
+
+			// Attempt to insert the row into the table
+			try {
+				insertValues(tableName, valueArray, noValues);
+			}
+			catch (const std::exception& e) {
+				cout << "Error on line " << lineNumber << ": " << e.what() << endl;
+			}
+
+			// Clean up dynamic memory
+			delete[] valueArray;
+		}
+
+		// Close the file
+		csvFile.close();
+	}
 	//ALTA CLASA PT ASTEA 2
 	void printHelpMenu() {
 		string commands[] = {
@@ -3117,6 +3195,61 @@ private:
 			}
 
 			db->printSyntaxMenu();
+		}
+		catch (const invalid_argument& e) {
+			cout << endl << e.what();
+		}
+	}
+	void stringCommandImportCSV(const string& command, const string& csvFilePath, char delimiter) {
+		try {
+			string commandCopy = command;
+			trim(commandCopy);
+
+			// Check if the command starts with "IMPORT INTO "
+			if (commandCopy.find("IMPORT INTO ") != 0) {
+				cout << endl << "Invalid command format.";
+				return;
+			}
+
+			// Find the position of the space after "IMPORT INTO "
+			size_t pos = commandCopy.find(" ", 12); // 12 is the length of "IMPORT INTO "
+			if (pos == string::npos) {
+				cout << endl << "Invalid command format. Missing table name or file name.";
+				return;
+			}
+
+			// Get the table name
+			string tableName = commandCopy.substr(12, pos - 12);
+			trim(tableName);
+
+			if (tableName.empty()) {
+				cout << endl << "Invalid command format. Table name cannot be empty.";
+				return;
+			}
+
+			// Get the file name
+			string fileName = commandCopy.substr(pos + 1);
+			trim(fileName);
+
+			if (fileName.empty()) {
+				cout << endl << "Invalid command format. File name cannot be empty.";
+				return;
+			}
+
+			// Check for valid file extension
+			if (fileName.find(".csv") == string::npos && fileName.find(".txt") == string::npos) {
+				cout << endl << "Invalid file format. Only .csv or .txt files are allowed.";
+				return;
+			}
+
+			// Check if the file exists
+			if (!filesystem::exists(csvFilePath)) {
+				cout << endl << "Error: File '" << csvFilePath << "' does not exist.";
+				return;
+			}
+
+			// Import the CSV file into the table
+			db->importCSV(tableName, csvFilePath, fileName, delimiter);
 		}
 		catch (const invalid_argument& e) {
 			cout << endl << e.what();
