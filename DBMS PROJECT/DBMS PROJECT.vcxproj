@@ -134,6 +134,7 @@
     <ClCompile Include="IndexManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Row.cpp" />
+    <ClCompile Include="stringUtils.cpp" />
     <ClCompile Include="Table.cpp" />
     <ClCompile Include="TableNames.cpp" />
     <ClCompile Include="ValidateDataType.cpp" />
@@ -144,6 +145,7 @@
     <ClInclude Include="Index.h" />
     <ClInclude Include="IndexManager.h" />
     <ClInclude Include="Row.h" />
+    <ClInclude Include="stringUtils.h" />
     <ClInclude Include="Table.h" />
     <ClInclude Include="TableNames.h" />
     <ClInclude Include="ValidateDataType.h" />
