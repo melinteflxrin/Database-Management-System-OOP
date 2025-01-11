@@ -3273,6 +3273,23 @@ public:
 		return syntaxMenu();
 	}
 };
+class clearDisplay : public Command {
+public:
+	void execute(Database& db) override {
+		system("cls");
+	}
+	static clearDisplay parseCommand(const string& command) {
+		string commandCopy = command;
+		stringUtils::trim(commandCopy);
+
+		//check if the command is "clear"
+		if (commandCopy != "clear") {
+			throw invalid_argument("Invalid command format.");
+		}
+
+		return clearDisplay();
+	}
+};
 
 class commandParser; //declaration ahead of commandParser to avoid errors
 
