@@ -172,6 +172,7 @@
     <ClInclude Include="HelpersForSelectCommands.h" />
     <ClInclude Include="Index.h" />
     <ClInclude Include="IndexManager.h" />
+    <ClInclude Include="readSettingsFile.h" />
     <ClInclude Include="Row.h" />
     <ClInclude Include="selectCommands.h" />
     <ClInclude Include="startCommands.h" />

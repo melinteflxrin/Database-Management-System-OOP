@@ -164,5 +164,8 @@
     <ClInclude Include="startCommands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="readSettingsFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
