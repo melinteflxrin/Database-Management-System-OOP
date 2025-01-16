@@ -144,6 +144,15 @@
   <ItemGroup>
     <ClInclude Include="Column.h" />
     <ClInclude Include="Command.h" />
+    <ClInclude Include="Commands Headers\alterAddColumn.h" />
+    <ClInclude Include="Commands Headers\alterDropColumn.h" />
+    <ClInclude Include="Commands Headers\createIndex.h" />
+    <ClInclude Include="Commands Headers\createTable.h" />
+    <ClInclude Include="Commands Headers\deleteWhere.h" />
+    <ClInclude Include="Commands Headers\describeTable.h" />
+    <ClInclude Include="Commands Headers\dropTable.h" />
+    <ClInclude Include="Commands Headers\insertCommand.h" />
+    <ClInclude Include="Commands Headers\updateTable.h" />
     <ClInclude Include="Database.h" />
     <ClInclude Include="helpCommands.h" />
     <ClInclude Include="HelpersForSelectCommands.h" />
