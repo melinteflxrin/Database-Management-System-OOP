@@ -129,6 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Column.cpp" />
+    <ClCompile Include="commandParser.cpp" />
     <ClCompile Include="Database.cpp" />
     <ClCompile Include="HelpersForSelectCommands.cpp" />
     <ClCompile Include="Index.cpp" />
@@ -144,20 +145,27 @@
   <ItemGroup>
     <ClInclude Include="Column.h" />
     <ClInclude Include="Command.h" />
+    <ClInclude Include="commandParser.h" />
     <ClInclude Include="Commands Headers\alterAddColumn.h" />
     <ClInclude Include="Commands Headers\alterDropColumn.h" />
+    <ClInclude Include="Commands Headers\clearDisplay.h" />
     <ClInclude Include="Commands Headers\createIndex.h" />
     <ClInclude Include="Commands Headers\createTable.h" />
     <ClInclude Include="Commands Headers\deleteWhere.h" />
     <ClInclude Include="Commands Headers\describeTable.h" />
     <ClInclude Include="Commands Headers\dropIndex.h" />
     <ClInclude Include="Commands Headers\dropTable.h" />
+    <ClInclude Include="Commands Headers\helpMenu.h" />
     <ClInclude Include="Commands Headers\importCSV.h" />
-    <ClInclude Include="Commands Headers\insertCommand.h" />
+    <ClInclude Include="Commands Headers\InsertCommand.h" />
     <ClInclude Include="Commands Headers\selectAll.h" />
+    <ClInclude Include="Commands Headers\selectAllWhere.h" />
+    <ClInclude Include="Commands Headers\selectColumns.h" />
+    <ClInclude Include="Commands Headers\selectWhere.h" />
     <ClInclude Include="Commands Headers\showIndexFromAll.h" />
     <ClInclude Include="Commands Headers\showIndexFromTable.h" />
     <ClInclude Include="Commands Headers\showTables.h" />
+    <ClInclude Include="Commands Headers\syntaxMenu.h" />
     <ClInclude Include="Commands Headers\updateTable.h" />
     <ClInclude Include="Database.h" />
     <ClInclude Include="helpCommands.h" />

@@ -51,6 +51,9 @@
     <ClCompile Include="ValidDataType.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="commandParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Column.h">
@@ -101,7 +104,7 @@
     <ClInclude Include="Commands Headers\dropTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\insertCommand.h">
+    <ClInclude Include="Commands Headers\InsertCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Commands Headers\createIndex.h">
@@ -135,6 +138,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Commands Headers\selectAll.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\selectWhere.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\selectColumns.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\selectAllWhere.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\helpMenu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\syntaxMenu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\clearDisplay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="commandParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
