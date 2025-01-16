@@ -150,8 +150,14 @@
     <ClInclude Include="Commands Headers\createTable.h" />
     <ClInclude Include="Commands Headers\deleteWhere.h" />
     <ClInclude Include="Commands Headers\describeTable.h" />
+    <ClInclude Include="Commands Headers\dropIndex.h" />
     <ClInclude Include="Commands Headers\dropTable.h" />
+    <ClInclude Include="Commands Headers\importCSV.h" />
     <ClInclude Include="Commands Headers\insertCommand.h" />
+    <ClInclude Include="Commands Headers\selectAll.h" />
+    <ClInclude Include="Commands Headers\showIndexFromAll.h" />
+    <ClInclude Include="Commands Headers\showIndexFromTable.h" />
+    <ClInclude Include="Commands Headers\showTables.h" />
     <ClInclude Include="Commands Headers\updateTable.h" />
     <ClInclude Include="Database.h" />
     <ClInclude Include="helpCommands.h" />

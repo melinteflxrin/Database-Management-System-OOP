@@ -119,5 +119,23 @@
     <ClInclude Include="Commands Headers\alterDropColumn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Commands Headers\dropIndex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\importCSV.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\showTables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\showIndexFromTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\showIndexFromAll.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands Headers\selectAll.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
