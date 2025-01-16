@@ -15,7 +15,7 @@ public:
 		system("cls");
 
 		std::cout << "========================== SYNTAX MENU ==========================\n";
-		std::cout << "1. CREATE TABLE table_name (column_name, column_type, size, default_value)\n";
+		std::cout << "1. CREATE TABLE table_name ((column_name1, column_type, size, default_value),(column_name2, ..))\n";
 		std::cout << "   - Creates a new table with the specified columns.\n";
 		std::cout << "\n";
 		std::cout << "2. DESCRIBE table_name\n";
