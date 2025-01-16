@@ -53,10 +53,10 @@ public:
 			"SHOW INDEX FROM ALL",
 
 			// Utility Commands
-			"HELP MENU",
-			"SYNTAX MENU",
-			"CLEAR",
-			"EXIT"
+			"HELP MENU (help)",
+			"SYNTAX MENU (help 2)",
+			"clear",
+			"exit"
 		};
 
 		string descriptions[] = {

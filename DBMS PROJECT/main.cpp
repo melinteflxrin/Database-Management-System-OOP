@@ -31,8 +31,8 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	cout << "Use the 'help' command to view available commands and their syntax." << endl;
-	cout << "Use the 'exit' command to close the program and save your changes." << endl;
+	cout << "Use the \x1B[97m'help'\033[0m command to view available commands and their syntax." << endl;
+	cout << "Use the \x1B[97m'exit'\033[0m command to close the program and save your changes." << endl;
 
 	//read files passed as arguments
 	const int maxFiles = 5;
