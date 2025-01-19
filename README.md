@@ -12,10 +12,41 @@ The application handles basic SQL commands, enables faster lookups using indexes
 ## Commands
 There are 20 avaliable commands, including a help menu and a sytanx menu that provide descriptions and syntax details for all commands.<br/>
 They allow the user to create and manage tables, insert and update data, create indexes for faster lookups, retrieve data with select commands, and more.<br/>
+```
+  Basic Operations:
+1. CREATE TABLE                 
+2. DESCRIBE TABLE                
+3. DROP TABLE                   
 
-![image](https://github.com/user-attachments/assets/cebd1c3d-83e2-431c-937f-5fd5d2c57796)
+  Data Manipulation:
+4. INSERT                       
+5. DELETE FROM                   
+6. UPDATE TABLE                  
+7. ALTER ADD                    
+8. ALTER DROP                   
+9. IMPORT                         
 
-![image](https://github.com/user-attachments/assets/086399c3-aa85-494e-949f-a67438ff8ccf)
+  Index Operations:
+10. CREATE INDEX                 
+11. DROP INDEX                 
+
+  Select Commands:
+12. SELECT ALL                    
+13. SELECT ALL WHERE              
+14. SELECT COLUMNS                
+15. SELECT WHERE                  
+
+  Database Information:
+16. SHOW TABLES                   
+17. SHOW INDEX FROM TABLE         
+18. SHOW INDEX FROM ALL          
+
+  Utility Commands:
+19. HELP MENU (help)            
+20. SYNTAX MENU (help 2)          
+21. clear                        
+22. exit                          
+```
 
 
 
