@@ -1,6 +1,6 @@
 # DBMS - My SQLite Engine
 ## Table of contents
-
+1. [Description](https://github.com/melinteflxrin/Database-Management-System-OOP/edit/master/README.md#description).
 ## Description
 A lightweight implementation of a database management system, similar to SQLite.<br/>
 
