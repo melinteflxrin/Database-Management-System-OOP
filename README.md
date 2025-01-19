@@ -1,8 +1,8 @@
 # DBMS - My SQLite Engine
 ## Table of contents
-1.[Description](#description)<br/>
-2.[Commands](#commands)<br/>
-3.[File Management](#file-management)<br/>
+1. [Description](#description)<br/>
+2. [Commands](#commands)<br/>
+3. [File Management](#file-management)<br/>
 ## Description
 A lightweight implementation of a database management system, similar to SQLite.<br/>
 
