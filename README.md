@@ -59,7 +59,7 @@ They allow the user to create and manage tables, insert and update data, create 
   ```
   ![image](https://github.com/user-attachments/assets/de324f7b-1774-4de6-b8a7-4c1d64c95603)<br/>
   
-  Dropping a table (also removes all the indexes associated with that table:
+  Dropping a table (also removes all the indexes associated with that table):
   ```
   DROP TABLE Products
   ```
