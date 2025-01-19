@@ -2,6 +2,7 @@
 ## Table of contents
 1.[Description](#description)<br/>
 2.[Commands](#commands)<br/>
+3.[File Management](#file-management)<br/>
 ## Description
 A lightweight implementation of a database management system, similar to SQLite.<br/>
 
@@ -51,6 +52,16 @@ They allow the user to create and manage tables, insert and update data, create 
   Each column has the following attributes: column_name, type (INT, TEXT or FLOAT), size, default_value, and an optional UNIQUE constraint that ensures all values in the column are different.
   ```
   CREATE TABLE Products ((ID, INT, 5, 0, UNIQUE),(Name, TEXT, 20, unknown), (Price, FLOAT, 10, 0.0))
+  ```
+  Displaying the table structure:
+  ```
+  DESCRIBE Products
+  ```
+  ![image](https://github.com/user-attachments/assets/de324f7b-1774-4de6-b8a7-4c1d64c95603)<br/>
+  
+  Dropping a table (also removes all the indexes associated with that table:
+  ```
+  DROP TABLE Products
   ```
 - ### Inserting data:
   Values from insert commands are separated by , and they have the same number and order as the table definition.<br/>
@@ -107,12 +118,15 @@ They allow the user to create and manage tables, insert and update data, create 
   ALTER TABLE Products DROP COLUMN Weight
   ```
   
+- ### Deleting rows:
+  Deleting rows from a table will also update the indexes from all columns which have an index created on them.
+  It also uses the WHERE condition to search for data quicker using the index (if the column has an index).
+  ```
+  DELETE FROM Products WHERE Name=TV
+  ```
+  ![image](https://github.com/user-attachments/assets/d551a7c9-f9e1-4466-937b-4773020e37cb)
 
-  
-
-
-
-- ## Files:
+## File Management:
   import, select com, tables config, start com, delimiter, settings
   
   
