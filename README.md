@@ -11,7 +11,7 @@ This project was part of an optional OOP class assignment designed to gain pract
 The application handles basic SQL commands, enables faster lookups using indexes, manages files for data import, stores table structures to maintain the database state, and more.<br/>
 
 ## Commands
-There are 20 avaliable commands, including a help menu and a sytanx menu that provide descriptions and syntax details for all commands.<br/>
+There are 20 available commands, including a help menu and a syntax menu that provide descriptions and syntax details for all commands.<br/>
 They allow the user to create and manage tables, insert and update data, create indexes for faster lookups, retrieve data with select commands, and more.<br/>
 ```
   Basic Operations:
@@ -129,7 +129,7 @@ They allow the user to create and manage tables, insert and update data, create 
 
 ## File Management:
   - ### Start commands:
-    The application can recieve one or more input text files through the arguments of the main function.<br/>
+    The application can receive one or more input text files through the arguments of the main function.<br/>
     For example, if the application is called *DBMS PROJECT.exe*, it can be launched with a command like the following:
     ```
     "DBMS PROJECT.exe" commands1.txt commands2.txt
@@ -145,7 +145,7 @@ They allow the user to create and manage tables, insert and update data, create 
 
   - ### Select commands:
     The execution of *SELECT* commands automatically generates text files containing the results of the commands.<br/>
-    The filesnames are generated automatically, following this format: *SELECT_1.txt, SELECT_2.txt, etc.*
+    The filenames are generated automatically, following this format: *SELECT_1.txt, SELECT_2.txt, etc.*
 
   - ### Importing data from CSV files:
     The application allows the upload of data from CSV files, similar to *INSERT* commands.<br/>
@@ -162,7 +162,7 @@ They allow the user to create and manage tables, insert and update data, create 
     The file contains the following information (must be in this order to be read correctly):
     - The address of the folder containing the tables' configuration files
     - The address for the output of *SELECT* commands
-    - The address of the folder containg *CSV* files that can be imported
+    - The address of the folder containing *CSV* files that can be imported
     - The delimiter for the *CSV* files
         
   
