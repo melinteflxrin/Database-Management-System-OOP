@@ -77,6 +77,7 @@ They allow the user to create and manage tables, insert and update data, create 
   CREATE INDEX nameIndex ON Products (Name)
   ```
     #### Index information:
+    Shows all indexes from a table and all indexes from all tables respectively.
   ```
   SHOW INDEX FROM Products
   SHOW INDEX FROM ALL
