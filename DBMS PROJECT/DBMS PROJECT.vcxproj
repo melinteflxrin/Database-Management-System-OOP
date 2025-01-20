@@ -173,6 +173,7 @@
     <ClInclude Include="Index.h" />
     <ClInclude Include="IndexManager.h" />
     <ClInclude Include="readSettingsFile.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Row.h" />
     <ClInclude Include="selectCommands.h" />
     <ClInclude Include="startCommands.h" />
@@ -180,6 +181,12 @@
     <ClInclude Include="Table.h" />
     <ClInclude Include="TableNames.h" />
     <ClInclude Include="ValidDataType.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\!dbms project backups\icon ico.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
