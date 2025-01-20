@@ -175,6 +175,7 @@
     <ClInclude Include="readSettingsFile.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
+    <ClInclude Include="resource2.h" />
     <ClInclude Include="Row.h" />
     <ClInclude Include="selectCommands.h" />
     <ClInclude Include="startCommands.h" />
@@ -185,6 +186,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\!dbms project backups\icon ico.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
