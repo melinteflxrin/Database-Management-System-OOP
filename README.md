@@ -128,10 +128,43 @@ They allow the user to create and manage tables, insert and update data, create 
   ![image](https://github.com/user-attachments/assets/d551a7c9-f9e1-4466-937b-4773020e37cb)
 
 ## File Management:
-  import, select com, tables config, start com, delimiter, settings
-  
-  
+  - ### Start commands:
+    The application can recieve one or more input text files through the arguments of the main function.<br/>
+    For example, if the application is called *DBMS PROJECT.exe*, it can be launched with a command like the following:
+    ```
+    "DBMS PROJECT.exe" commands1.txt commands2.txt
+    ```
+    If the text files containing the start commands are not in the same directory as the application, the full path to each file is needed as an argument.<br/>
+    Can also be started without recieving any arguments.
+    
+  - ### Table configuration files:
+    All table details such as table structure, data, index information, are stored in configuration binary files. Each table in the database has its own associated binary file, with the same name as the table.<br/>
+    The configuration files are used by the application at startup to load the database and all table information.<br/>
+    
+    Upon exiting the application, all modifications made to the tables during the session are saved, and the binary files are updated.
 
+  - ### Select commands:
+    The execution of *SELECT* commands automatically generates text files containing the results of the commands.<br/>
+    The filesnames are generated automatically, following this format: *SELECT_1.txt, SELECT_2.txt, etc.*
+
+  - ### Importing data from CSV files:
+    The application allows the upload of data from CSV files, similar to *INSERT* commands.<br/>
+    The delimiter symbol (e.g.```,``` , ```#```, or others) is chosen by the user.<br/>
+
+    Importing CSV files can be done like this:
+    ```
+    IMPORT INTO Products file_name.csv
+    ```
+    
+  - ### Settings file:
+    The program starts by reading configuration details from a ```settings.txt``` file located in the same directory as the application.<br/>
+
+    The file contains the following information (must be in this order to be read correctly):
+    - The address of the folder containing the tables' configuration files
+    - The address for the output of *SELECT* commands
+    - The address of the folder containg *CSV* files that can be imported
+    - The delimiter for the *CSV* files
+        
   
   
 
