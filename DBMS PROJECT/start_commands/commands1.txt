@@ -1,1 +1,0 @@
-CREATE TABLE Products ((ID, INT, 5, 0, UNIQUE),(Name, TEXT, 20, unknown), (Price, FLOAT, 10, 0.0))

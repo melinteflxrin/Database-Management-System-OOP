@@ -1,3 +1,0 @@
-INSERT INTO Products VALUES (123, Laptop, 3799.99)
-INSERT INTO Products VALUES (124, TV, 1599.99)
-
