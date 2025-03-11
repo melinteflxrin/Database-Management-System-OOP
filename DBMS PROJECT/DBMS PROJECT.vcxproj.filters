@@ -13,178 +13,175 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\sql_commands">
+      <UniqueIdentifier>{6756e3d7-fc3c-4dfb-83de-0ca8f3a1f180}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="Sources\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Column.cpp">
+    <ClCompile Include="Sources\Column.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Row.cpp">
+    <ClCompile Include="Sources\commandParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TableNames.cpp">
+    <ClCompile Include="Sources\Database.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Table.cpp">
+    <ClCompile Include="Sources\HelpersForSelectCommands.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Index.cpp">
+    <ClCompile Include="Sources\Index.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IndexManager.cpp">
+    <ClCompile Include="Sources\IndexManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HelpersForSelectCommands.cpp">
+    <ClCompile Include="Sources\Row.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stringUtils.cpp">
+    <ClCompile Include="Sources\selectCommands.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="selectCommands.cpp">
+    <ClCompile Include="Sources\stringUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Database.cpp">
+    <ClCompile Include="Sources\Table.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ValidDataType.cpp">
+    <ClCompile Include="Sources\TableNames.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="commandParser.cpp">
+    <ClCompile Include="Sources\ValidDataType.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Column.h">
+    <ClInclude Include="Headers\Column.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Row.h">
+    <ClInclude Include="Headers\Command.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TableNames.h">
+    <ClInclude Include="Headers\commandParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Table.h">
+    <ClInclude Include="Headers\Database.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Index.h">
+    <ClInclude Include="Headers\helpCommands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="IndexManager.h">
+    <ClInclude Include="Headers\HelpersForSelectCommands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HelpersForSelectCommands.h">
+    <ClInclude Include="Headers\Index.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stringUtils.h">
+    <ClInclude Include="Headers\IndexManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="selectCommands.h">
+    <ClInclude Include="Headers\readSettingsFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Database.h">
+    <ClInclude Include="Headers\Row.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Command.h">
+    <ClInclude Include="Headers\selectCommands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="helpCommands.h">
+    <ClInclude Include="Headers\startCommands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ValidDataType.h">
+    <ClInclude Include="Headers\stringUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\createTable.h">
+    <ClInclude Include="Headers\Table.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\describeTable.h">
+    <ClInclude Include="Headers\TableNames.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\dropTable.h">
+    <ClInclude Include="Headers\ValidDataType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\InsertCommand.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\alterAddColumn.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\createIndex.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\alterDropColumn.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\deleteWhere.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\clearDisplay.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\updateTable.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\createIndex.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\alterAddColumn.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\createTable.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\alterDropColumn.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\deleteWhere.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\dropIndex.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\describeTable.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\importCSV.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\dropIndex.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\showTables.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\dropTable.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\showIndexFromTable.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\helpMenu.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\showIndexFromAll.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\importCSV.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\selectAll.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\InsertCommand.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\selectWhere.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\selectAll.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\selectColumns.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\selectAllWhere.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\selectAllWhere.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\selectColumns.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\helpMenu.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\selectWhere.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\syntaxMenu.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\showIndexFromAll.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="Commands Headers\clearDisplay.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\showIndexFromTable.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="commandParser.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\showTables.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="startCommands.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\syntaxMenu.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="readSettingsFile.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Commands\updateTable.h">
+      <Filter>Header Files\sql_commands</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource1.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Resource.rc">
+    <ClInclude Include="Resources\resource.h">
       <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\!dbms project backups\icon ico.ico">
+    <Image Include="Resources\dbms_icon.ico">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\Resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
