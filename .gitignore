@@ -363,7 +363,7 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Ignore my folders
-/DBMS PROJECT/csv_files/
-/DBMS PROJECT/tables_config/
-/DBMS PROJECT/select_commands/
-/DBMS PROJECT/start_commands/
+DBMS PROJECT/csv_files/
+DBMS PROJECT/tables_config/
+DBMS PROJECT/select_commands/
+DBMS PROJECT/start_commands/
