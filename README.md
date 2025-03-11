@@ -3,6 +3,7 @@
 1. [Description](#description)<br/>
 2. [Commands](#commands)<br/>
 3. [File Management](#file-management)<br/>
+4. [Demo Video](#demo-video)<br/>
 ## Description
 A lightweight implementation of a database management system, similar to SQLite.<br/>
 
@@ -164,7 +165,8 @@ They allow the user to create and manage tables, insert and update data, create 
     - The address for the output of *SELECT* commands
     - The address of the folder containing *CSV* files that can be imported
     - The delimiter for the *CSV* files
-        
-  
-  
+
+## Demo Video 
+Here is a quick video showcasing how commands work and how the program manages files.<br/>
+  - https://www.youtube.com/watch?v=-Q0qjhDrciE
 

@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Ignore my folders
+csv_files/
+tables_config/
+select_commands/
+start_commands/
